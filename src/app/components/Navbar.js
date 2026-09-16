@@ -173,46 +173,7 @@ export default function Navbar() {
         {/* Header Right Action Group */}
         <div className="nav-right-group">
 
-          {/* User Account / Login Button */}
-          {user ? (
-            <div className="nav-user-group">
-              <Link 
-                href="/account"
-                className={`nav-account-btn ${pathname === '/account' ? 'active' : ''}`}
-                onClick={closeDrawer}
-              >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="12" cy="7" r="4"></circle>
-                </svg>
-                <span className="nav-account-text">Account</span>
-              </Link>
-              <button 
-                onClick={() => { logout(); closeDrawer(); router.push('/'); }}
-                className="nav-logout-btn"
-                title="Log Out"
-                aria-label="Log Out"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                  <polyline points="16 17 21 12 16 7"></polyline>
-                  <line x1="21" y1="12" x2="9" y2="12"></line>
-                </svg>
-              </button>
-            </div>
-          ) : (
-            <Link 
-              href="/auth" 
-              className={`nav-auth-pill ${pathname === '/auth' ? 'active' : ''}`} 
-              onClick={closeDrawer}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-              </svg>
-              <span className="auth-text">Sign In</span>
-            </Link>
-          )}
+          {/* User Account / Login Button Removed from Header */}
 
           {/* Nav Icons */}
           <div className="nav-icons">
@@ -226,17 +187,7 @@ export default function Navbar() {
               )}
             </Link>
 
-            {/* Shopping Cart Link */}
-            <Link href="/cart" className="nav-icon-btn" title="Shopping Cart">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="9" cy="21" r="1"></circle>
-                <circle cx="20" cy="21" r="1"></circle>
-                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-              </svg>
-              {cartItemCount > 0 && (
-                <span className="badge cart-badge">{cartItemCount}</span>
-              )}
-            </Link>
+            {/* Shopping Cart Link Removed from Header */}
           </div>
         </div>
       </nav>

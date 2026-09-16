@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useApp } from "../context/AppContext";
 import Link from "next/link";
 import Image from "next/image";
@@ -53,26 +53,14 @@ function CatalogContent() {
     handling: false
   });
 
-  const [selectedProduct, setSelectedProduct] = useState(null);
-  const [activeImage, setActiveImage] = useState(null);
+  const router = useRouter();
+
   const [toastMessage, setToastMessage] = useState("");
   const [showToast, setShowToast] = useState(false);
 
   const toggleSection = (section) => {
     setOpenSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
-
-  // Lock body scroll when modal is open
-  useEffect(() => {
-    if (selectedProduct) {
-      document.body.classList.add("modal-open");
-    } else {
-      document.body.classList.remove("modal-open");
-    }
-    return () => {
-      document.body.classList.remove("modal-open");
-    };
-  }, [selectedProduct]);
 
   // Read URL parameters
   const deptParam = searchParams.get("department");
@@ -210,6 +198,31 @@ function CatalogContent() {
     if (toggleWishlist(product)) {
       const inWish = wishlist.some(item => item.id === product.id);
       triggerToast(inWish ? `Removed ${product.name} from Wishlist` : `Saved ${product.name} to Wishlist`);
+    }
+  };
+
+  const handleShare = async (product, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const shareUrl = `${window.location.origin}/product/${product.id}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: product.name,
+          text: `Check out ${product.name} on Orient Crockeries!`,
+          url: shareUrl,
+        });
+      } catch (err) {
+        console.error("Share failed:", err);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        triggerToast("Link copied to clipboard!");
+      } catch (err) {
+        console.error("Failed to copy:", err);
+      }
     }
   };
 
@@ -618,7 +631,7 @@ function CatalogContent() {
                   <div 
                     key={product.id} 
                     className="product-card" 
-                    onClick={() => { setSelectedProduct(product); setActiveImage(null); }}
+                    onClick={() => router.push(`/product/${product.id}`)}
                     style={{ cursor: "pointer" }}
                   >
                     <div className="product-img-wrapper">
@@ -640,6 +653,13 @@ function CatalogContent() {
                         <svg width="18" height="18" viewBox="0 0 24 24" fill={inWish ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
                           <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                         </svg>
+                      </button>
+                      <button 
+                        className="share-btn"
+                        onClick={(e) => handleShare(product, e)}
+                        aria-label="Share Product"
+                      >
+                        <i className="fa-solid fa-share-nodes"></i>
                       </button>
                     </div>
                     <div className="product-info">
@@ -668,184 +688,6 @@ function CatalogContent() {
           )}
         </main>
       </div>
-
-      {/* Specifications Modal Overlay */}
-      {selectedProduct && (
-        <div className="modal-overlay active" onClick={() => setSelectedProduct(null)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            {/* Top Navigation Bar with Back Button */}
-            <div className="modal-top-nav-bar">
-              <button 
-                type="button" 
-                className="modal-back-btn" 
-                onClick={() => setSelectedProduct(null)}
-                title="Return to Catalog"
-              >
-                <i className="fa-solid fa-arrow-left"></i>
-                <span>Back to Catalog</span>
-              </button>
-
-              <span className="modal-top-breadcrumb">
-                {selectedProduct.department} &rsaquo; {selectedProduct.category}
-              </span>
-
-              <button 
-                type="button" 
-                className="modal-close-btn-inline" 
-                onClick={() => setSelectedProduct(null)}
-                title="Close"
-              >
-                <i className="fa-solid fa-xmark"></i>
-              </button>
-            </div>
-
-            <div className="modal-img-side">
-              <ProductImageZoomViewer 
-                product={selectedProduct} 
-                activeImage={activeImage} 
-                getValidImageUrl={getValidImageUrl} 
-              />
-              {selectedProduct.images && Array.isArray(selectedProduct.images) && selectedProduct.images.length > 1 && (
-                <div className="thumbnail-gallery" style={{ display: 'flex', gap: '8px', padding: '12px', overflowX: 'auto', width: '100%', justifyContent: 'center' }}>
-                  {selectedProduct.images.map((img, idx) => (
-                    <Image 
-                      key={idx} 
-                      src={getValidImageUrl(img)} 
-                      alt={`${selectedProduct.name} - view ${idx + 1}`} 
-                      width={55}
-                      height={55}
-                      className={`thumbnail ${(activeImage === img || (!activeImage && selectedProduct.image === img)) ? 'active' : ''}`}
-                      onClick={() => setActiveImage(img)}
-                      style={{ ...getImageStyle(selectedProduct, img, 'cover'), cursor: 'pointer', borderRadius: '6px' }}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="modal-content-side">
-              <div className="modal-header" style={{ marginBottom: "1rem", borderBottom: "none", paddingBottom: 0 }}>
-                <span className="modal-meta-label">
-                  <i className="fa-solid fa-gem" style={{ fontSize: "0.75rem" }}></i>
-                  {selectedProduct.department}
-                </span>
-                <h2 className="modal-title">{selectedProduct.name}</h2>
-                <p className="modal-desc">{selectedProduct.description || "Indulging design and elite utility from Orient Crockeries, crafted to perfection."}</p>
-                
-                {/* Repositioned & Attractive Add To Shopping Cart Action */}
-                <div className="modal-cart-actions" style={{ marginTop: "1.2rem", marginBottom: "1rem" }}>
-                  <button 
-                    className="btn-add-to-cart-attractive"
-                    onClick={(e) => {
-                      handleAddToCart(selectedProduct, e);
-                      setSelectedProduct(null);
-                    }}
-                    disabled={selectedProduct.stock <= 0 || selectedProduct.stockStatus === 'Out of Stock'}
-                  >
-                    <i className="fa-solid fa-cart-shopping" style={{ fontSize: "1.1rem" }}></i>
-                    <span>{(selectedProduct.stock <= 0 || selectedProduct.stockStatus === 'Out of Stock') ? "Temporarily Unavailable" : "Add to Shopping Cart"}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Premium Feature Spec Badges */}
-              <div className="product-highlights-badges">
-                <div className="highlight-badge-card">
-                  <div className="badge-icon-box gst">
-                    <i className="fa-solid fa-percent"></i>
-                  </div>
-                  <div className="badge-text-box">
-                    <span className="badge-title">GST RATE</span>
-                    <span className="badge-val">{selectedProduct.gst || 18}% Incl.</span>
-                  </div>
-                </div>
-
-                {(selectedProduct.fragile === true || selectedProduct.fragile === "true" || selectedProduct.fragile === "fragile") && (
-                  <div className="highlight-badge-card">
-                    <div className="badge-icon-box fragile">
-                      <i className="fa-solid fa-shield-halved"></i>
-                    </div>
-                    <div className="badge-text-box">
-                      <span className="badge-title">HANDLING</span>
-                      <span className="badge-val">Fragile Handling ⚠️</span>
-                    </div>
-                  </div>
-                )}
-
-                {(selectedProduct.microwave === true || selectedProduct.microwave === "true" || selectedProduct.microwave === "safe") && (
-                  <div className="highlight-badge-card">
-                    <div className="badge-icon-box microwave-safe">
-                      <i className="fa-solid fa-fire-burner"></i>
-                    </div>
-                    <div className="badge-text-box">
-                      <span className="badge-title">MICROWAVE</span>
-                      <span className="badge-val">Microwave Safe ♨️</span>
-                    </div>
-                  </div>
-                )}
-
-                {selectedProduct.warranty && selectedProduct.warranty !== "No Warranty" && (
-                  <div className="highlight-badge-card">
-                    <div className="badge-icon-box warranty" style={{ backgroundColor: "#ecfdf5", color: "#059669" }}>
-                      <i className="fa-solid fa-award"></i>
-                    </div>
-                    <div className="badge-text-box">
-                      <span className="badge-title">WARRANTY</span>
-                      <span className="badge-val">{selectedProduct.warranty}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Embedded YouTube & Instagram Video Showcase */}
-              <ProductVideoEmbed product={selectedProduct} />
-
-              {selectedProduct.reviews && selectedProduct.reviews.length > 0 && (
-                <div style={{ marginTop: "1.5rem", borderTop: "1px solid #e2e8f0", paddingTop: "1.2rem" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "1rem" }}>
-                    <h3 style={{ fontSize: "1rem", fontWeight: "700", color: "#1e293b", margin: 0 }}>Customer Reviews</h3>
-                    <span style={{ backgroundColor: "#f1f5f9", color: "#475569", padding: "2px 8px", borderRadius: "12px", fontSize: "0.8rem", fontWeight: "600" }}>
-                      {selectedProduct.reviews.length} {selectedProduct.reviews.length === 1 ? 'Review' : 'Reviews'}
-                    </span>
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                    {selectedProduct.reviews.map((review, idx) => {
-                      const initial = review.reviewerName ? review.reviewerName.charAt(0).toUpperCase() : "U";
-                      const dateObj = review.timestamp ? new Date(review.timestamp) : new Date();
-                      const dateStr = dateObj.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
-                      return (
-                        <div key={idx} style={{ paddingBottom: "12px", borderBottom: idx !== selectedProduct.reviews.length - 1 ? "1px solid #f1f5f9" : "none" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "6px" }}>
-                            <div style={{ width: "32px", height: "32px", borderRadius: "50%", backgroundColor: "#e0e7ff", color: "#4338ca", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "700", fontSize: "0.85rem", flexShrink: 0 }}>
-                              {initial}
-                            </div>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ fontWeight: "600", fontSize: "0.88rem", color: "#334155" }}>{review.reviewerName}</div>
-                              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "2px" }}>
-                                <div style={{ fontSize: "0.8rem", display: "flex", letterSpacing: "1px" }}>
-                                  {Array.from({ length: 5 }).map((_, i) => (
-                                    <span key={i} style={{ color: i < review.rating ? "#f59e0b" : "#e2e8f0" }}>★</span>
-                                  ))}
-                                </div>
-                                <span style={{ color: "#94a3b8", fontSize: "0.75rem", fontWeight: "500" }}>{dateStr}</span>
-                              </div>
-                            </div>
-                            <div style={{ color: "#10b981", fontSize: "0.7rem", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px", backgroundColor: "#ecfdf5", padding: "3px 6px", borderRadius: "4px" }}>
-                              <i className="fa-solid fa-circle-check"></i> Verified
-                            </div>
-                          </div>
-                          <p style={{ fontSize: "0.85rem", color: "#475569", margin: "4px 0 0 0", lineHeight: "1.4", paddingLeft: "44px" }}>
-                            {review.comment}
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Floating Filter Quick Action Button */}
       <div style={{ position: "fixed", bottom: "30px", left: "30px", zIndex: 990 }}>

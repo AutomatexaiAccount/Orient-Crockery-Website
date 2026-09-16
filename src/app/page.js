@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useApp } from "./context/AppContext";
 import { getImageStyle } from "./utils/imageUtils";
@@ -20,23 +21,10 @@ const getValidImageUrl = (src) => {
 
 export default function Home() {
   const { products, addToCart, wishlist, toggleWishlist, isInWishlist } = useApp();
-  const [selectedProduct, setSelectedProduct] = useState(null);
-  const [activeImage, setActiveImage] = useState(null);
+  const router = useRouter();
   const [toastMessage, setToastMessage] = useState("");
   const [showToast, setShowToast] = useState(false);
   const [hoveredHotspot, setHoveredHotspot] = useState(null);
-
-  // Lock body scroll when modal is open
-  useEffect(() => {
-    if (selectedProduct) {
-      document.body.classList.add("modal-open");
-    } else {
-      document.body.classList.remove("modal-open");
-    }
-    return () => {
-      document.body.classList.remove("modal-open");
-    };
-  }, [selectedProduct]);
 
   // Filter 4 featured products to display on home page
   const featuredProducts = products
@@ -63,6 +51,31 @@ export default function Home() {
     if (toggleWishlist(product)) {
       const inWish = wishlist.some(item => item.id === product.id);
       triggerToast(inWish ? `Removed ${product.name} from Wishlist` : `Saved ${product.name} to Wishlist`);
+    }
+  };
+
+  const handleShare = async (product, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const shareUrl = `${window.location.origin}/product/${product.id}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: product.name,
+          text: `Check out ${product.name} on Orient Crockeries!`,
+          url: shareUrl,
+        });
+      } catch (err) {
+        console.error("Share failed:", err);
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        triggerToast("Link copied to clipboard!");
+      } catch (err) {
+        console.error("Failed to copy:", err);
+      }
     }
   };
 
@@ -181,7 +194,7 @@ export default function Home() {
             onMouseLeave={() => setHoveredHotspot(null)}
             onClick={() => {
               const prod = products.find(p => p.id === 7);
-              if (prod) { setSelectedProduct(prod); setActiveImage(null); }
+              if (prod) router.push(`/product/${prod.id}`);
             }}
           >
             <div className="hotspot-inner"></div>
@@ -208,7 +221,7 @@ export default function Home() {
             onMouseLeave={() => setHoveredHotspot(null)}
             onClick={() => {
               const prod = products.find(p => p.id === 9);
-              if (prod) { setSelectedProduct(prod); setActiveImage(null); }
+              if (prod) router.push(`/product/${prod.id}`);
             }}
           >
             <div className="hotspot-inner"></div>
@@ -235,7 +248,7 @@ export default function Home() {
             onMouseLeave={() => setHoveredHotspot(null)}
             onClick={() => {
               const prod = products.find(p => p.id === 10);
-              if (prod) { setSelectedProduct(prod); setActiveImage(null); }
+              if (prod) router.push(`/product/${prod.id}`);
             }}
           >
             <div className="hotspot-inner"></div>
@@ -312,7 +325,7 @@ export default function Home() {
               <div 
                 key={product.id} 
                 className="product-card" 
-                onClick={() => { setSelectedProduct(product); setActiveImage(null); }}
+                onClick={() => router.push(`/product/${product.id}`)}
                 style={{ cursor: "pointer" }}
               >
                 <div className="product-img-wrapper">
@@ -334,6 +347,13 @@ export default function Home() {
                     <svg width="18" height="18" viewBox="0 0 24 24" fill={inWish ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
                       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                     </svg>
+                  </button>
+                  <button 
+                    className="share-btn"
+                    onClick={(e) => handleShare(product, e)}
+                    aria-label="Share Product"
+                  >
+                    <i className="fa-solid fa-share-nodes"></i>
                   </button>
                 </div>
                 <div className="product-info">
@@ -382,117 +402,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Specifications Modal */}
-      {selectedProduct && (
-        <div className="modal-overlay active" onClick={() => setSelectedProduct(null)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close-btn" onClick={() => setSelectedProduct(null)}>
-              <i className="fa-solid fa-xmark"></i>
-            </button>
-            <div className="modal-img-side">
-              <ProductImageZoomViewer 
-                product={selectedProduct} 
-                activeImage={activeImage} 
-                getValidImageUrl={getValidImageUrl} 
-              />
-              {selectedProduct.images && Array.isArray(selectedProduct.images) && selectedProduct.images.length > 1 && (
-                <div className="thumbnail-gallery" style={{ display: 'flex', gap: '8px', padding: '12px', overflowX: 'auto', width: '100%', justifyContent: 'center' }}>
-                  {selectedProduct.images.map((img, idx) => (
-                    <Image 
-                      key={idx} 
-                      src={img} 
-                      alt={`${selectedProduct.name} - view ${idx + 1}`} 
-                      width={55}
-                      height={55}
-                      className={`thumbnail ${(activeImage === img || (!activeImage && selectedProduct.image === img)) ? 'active' : ''}`}
-                      onClick={() => setActiveImage(img)}
-                      style={{ ...getImageStyle(selectedProduct, img, 'cover'), cursor: 'pointer', borderRadius: '6px' }}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="modal-content-side">
-              <div className="modal-header" style={{ marginBottom: "1rem", borderBottom: "none", paddingBottom: 0 }}>
-                <span className="modal-meta-label">
-                  <i className="fa-solid fa-gem" style={{ fontSize: "0.75rem" }}></i>
-                  {selectedProduct.department}
-                </span>
-                <h2 className="modal-title">{selectedProduct.name}</h2>
-                <p className="modal-desc">{selectedProduct.description}</p>
-                
-                {/* Repositioned & Attractive Add To Shopping Cart Action */}
-                <div className="modal-cart-actions" style={{ marginTop: "1.2rem", marginBottom: "1rem" }}>
-                  <button 
-                    className="btn-add-to-cart-attractive"
-                    onClick={(e) => {
-                      handleAddToCart(selectedProduct, e);
-                      setSelectedProduct(null);
-                    }}
-                    disabled={selectedProduct.stock <= 0 || selectedProduct.stockStatus === 'Out of Stock'}
-                  >
-                    <i className="fa-solid fa-cart-shopping" style={{ fontSize: "1.1rem" }}></i>
-                    <span>{(selectedProduct.stock <= 0 || selectedProduct.stockStatus === 'Out of Stock') ? "Temporarily Unavailable" : "Add to Shopping Cart"}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Premium Feature Spec Badges */}
-              <div className="product-highlights-badges">
-                <div className="highlight-badge-card">
-                  <div className="badge-icon-box gst">
-                    <i className="fa-solid fa-percent"></i>
-                  </div>
-                  <div className="badge-text-box">
-                    <span className="badge-title">GST RATE</span>
-                    <span className="badge-val">{selectedProduct.gst || 18}% Incl.</span>
-                  </div>
-                </div>
-
-                {(selectedProduct.fragile === true || selectedProduct.fragile === "true" || selectedProduct.fragile === "fragile") && (
-                  <div className="highlight-badge-card">
-                    <div className="badge-icon-box fragile">
-                      <i className="fa-solid fa-shield-halved"></i>
-                    </div>
-                    <div className="badge-text-box">
-                      <span className="badge-title">HANDLING</span>
-                      <span className="badge-val">Fragile Handling ⚠️</span>
-                    </div>
-                  </div>
-                )}
-
-                {(selectedProduct.microwave === true || selectedProduct.microwave === "true" || selectedProduct.microwave === "safe") && (
-                  <div className="highlight-badge-card">
-                    <div className="badge-icon-box microwave-safe">
-                      <i className="fa-solid fa-fire-burner"></i>
-                    </div>
-                    <div className="badge-text-box">
-                      <span className="badge-title">MICROWAVE</span>
-                      <span className="badge-val">Microwave Safe ♨️</span>
-                    </div>
-                  </div>
-                )}
-
-                {selectedProduct.warranty && selectedProduct.warranty !== "No Warranty" && (
-                  <div className="highlight-badge-card">
-                    <div className="badge-icon-box warranty" style={{ backgroundColor: "#ecfdf5", color: "#059669" }}>
-                      <i className="fa-solid fa-award"></i>
-                    </div>
-                    <div className="badge-text-box">
-                      <span className="badge-title">WARRANTY</span>
-                      <span className="badge-val">{selectedProduct.warranty}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Embedded YouTube & Instagram Video Showcase */}
-              <ProductVideoEmbed product={selectedProduct} />
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* Removed Specifications Modal */}
       {/* Floating Toast Notification */}
       <div className={`toast toast-success ${showToast ? "show" : ""}`}>
         <i className="fa-solid fa-circle-check" style={{ color: "var(--primary)", fontSize: "1.1rem" }}></i>

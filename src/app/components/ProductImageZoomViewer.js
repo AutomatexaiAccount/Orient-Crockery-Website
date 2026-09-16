@@ -115,34 +115,6 @@ export default function ProductImageZoomViewer({ product, activeImage, getValidI
 
   return (
     <div style={{ width: '100%' }}>
-      {/* Prominent & Attractive Zoom Prompt Banner inside Product Modal */}
-      <div 
-        onClick={openLightbox}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '8px',
-          padding: '7px 14px',
-          backgroundColor: '#eff6ff',
-          border: '1.5px solid #bfdbfe',
-          borderRadius: '8px',
-          marginBottom: '10px',
-          fontSize: '0.8rem',
-          fontWeight: '700',
-          color: '#1d4ed8',
-          cursor: 'pointer',
-          userSelect: 'none',
-          boxShadow: '0 1px 3px rgba(37, 99, 235, 0.08)',
-          transition: 'all 0.2s ease'
-        }}
-        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#dbeafe'}
-        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#eff6ff'}
-      >
-        <i className="fa-solid fa-magnifying-glass-plus" style={{ color: '#2563eb', fontSize: '0.9rem' }}></i>
-        <span>Click photo for HD Zoom & Full Details</span>
-      </div>
-
       {/* Product Image Frame */}
       <div 
         className="clean-product-img-box"
@@ -153,7 +125,8 @@ export default function ProductImageZoomViewer({ product, activeImage, getValidI
         style={{
           position: 'relative',
           width: '100%',
-          height: '420px',
+          aspectRatio: '1 / 1',
+          maxHeight: '480px',
           backgroundColor: '#f8fafc',
           borderRadius: '12px',
           overflow: 'hidden',
@@ -175,29 +148,63 @@ export default function ProductImageZoomViewer({ product, activeImage, getValidI
             transition: 'transform 0.2s ease-out'
           }}
         />
-
-        {/* Sleek corner zoom badge */}
+        
+        {/* Sleek Zoom Icon Overlay */}
         <div style={{
           position: 'absolute',
-          top: '10px',
-          right: '10px',
-          backgroundColor: 'rgba(255, 255, 255, 0.92)',
+          bottom: '12px',
+          right: '12px',
+          backgroundColor: 'rgba(255, 255, 255, 0.8)',
           backdropFilter: 'blur(4px)',
-          color: '#1e293b',
-          border: '1px solid #cbd5e1',
-          padding: '4px 10px',
-          borderRadius: '20px',
-          fontSize: '0.74rem',
-          fontWeight: '700',
+          borderRadius: '50%',
+          width: '36px',
+          height: '36px',
           display: 'flex',
           alignItems: 'center',
-          gap: '5px',
-          pointerEvents: 'none',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
+          justifyContent: 'center',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          opacity: isHovering ? 1 : 0.7,
+          transition: 'all 0.2s ease',
+          zIndex: 5
         }}>
-          <i className="fa-solid fa-expand" style={{ color: '#2563eb' }}></i>
-          <span>HD Zoom</span>
+          <i className="fa-solid fa-expand" style={{ color: '#475569', fontSize: '0.9rem' }}></i>
         </div>
+
+        {/* Share Button Overlay */}
+        {typeof window !== 'undefined' && (
+          <button 
+            style={{
+              position: 'absolute',
+              top: '12px',
+              right: '12px',
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              border: '1px solid #e2e8f0',
+              width: '38px',
+              height: '38px',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+              zIndex: 10,
+              color: '#334155',
+              transition: 'all 0.2s ease'
+            }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (product && window.handleProductShare) {
+                window.handleProductShare(product, e);
+              }
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            aria-label="Share product"
+          >
+            <i className="fa-solid fa-share-nodes" style={{ fontSize: '1rem' }}></i>
+          </button>
+        )}
       </div>
 
       {/* Fullscreen Lightbox Overlay */}
