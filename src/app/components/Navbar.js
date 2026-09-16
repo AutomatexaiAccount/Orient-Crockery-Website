@@ -51,7 +51,14 @@ export default function Navbar() {
     };
   }, []);
 
-  if (pathname && (pathname.startsWith('/admin') || pathname.startsWith('/delivery') || pathname.startsWith('/reset-password') || pathname.startsWith('/auth/verify'))) {
+  if (pathname && (
+    pathname.startsWith('/admin') || 
+    pathname.startsWith('/delivery') || 
+    pathname.startsWith('/reset-password') || 
+    pathname.startsWith('/auth') ||
+    pathname.startsWith('/account') ||
+    pathname.startsWith('/cart')
+  )) {
     return null;
   }
 

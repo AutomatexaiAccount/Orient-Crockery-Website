@@ -27,10 +27,10 @@ export default function PromoOfferModal() {
   const [config, setConfig] = useState(DEFAULT_CONFIG);
   const [toastMessage, setToastMessage] = useState("");
 
-  const isAdminOrDelivery = pathname && (pathname.startsWith('/admin') || pathname.startsWith('/delivery') || pathname.startsWith('/reset-password') || pathname.startsWith('/auth/verify'));
-
+  const isAllowedPath = pathname === '/' || pathname?.startsWith('/catalog');
+  const shouldHide = !isAllowedPath || (pathname && (pathname.startsWith('/admin') || pathname.startsWith('/delivery') || pathname.startsWith('/reset-password') || pathname.startsWith('/auth/verify')));
   useEffect(() => {
-    if (isAdminOrDelivery) return;
+    if (shouldHide) return;
 
     // Check 7-day dismissal status
     const hideUntil = localStorage.getItem("orient_hide_promo_popup");
@@ -75,7 +75,7 @@ export default function PromoOfferModal() {
     };
 
     fetchConfig();
-  }, [isAdminOrDelivery]);
+  }, [shouldHide]);
 
   const handleClose = () => {
     if (dontShowAgain) {
@@ -99,7 +99,7 @@ export default function PromoOfferModal() {
     handleClose();
   };
 
-  if (isAdminOrDelivery || !isOpen) return null;
+  if (shouldHide || !isOpen) return null;
 
   return (
     <div 

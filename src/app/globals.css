@@ -838,11 +838,6 @@ nav {
   color: var(--dark);
   margin-bottom: 0.6rem;
   line-height: 1.25;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  height: 2.8rem;
 }
 
 .product-price-row {
