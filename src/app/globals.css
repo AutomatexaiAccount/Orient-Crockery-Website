@@ -3793,10 +3793,7 @@ footer {
 
 @media (max-width: 768px) {
   .floating-cart-btn {
-    bottom: 20px;
-    right: 20px;
-    width: 55px;
-    height: 55px;
+    display: none; /* Hide on mobile because MobileBottomNav shows the cart */
   }
 }
 

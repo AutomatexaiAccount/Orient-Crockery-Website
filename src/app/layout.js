@@ -48,6 +48,7 @@ export default function RootLayout({ children }) {
             {children}
             <Footer />
             <MobileBottomNav />
+            <FloatingCart />
           </AppProvider>
         </AuthProvider>
         <Script

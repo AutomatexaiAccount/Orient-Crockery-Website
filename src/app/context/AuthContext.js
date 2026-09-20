@@ -276,8 +276,10 @@ export function AuthProvider({ children }) {
 
   const requireLogin = (customMessage) => {
     if (!user) {
-      setAlertMessage(customMessage || "Please login to continue");
-      setShowAlert(true);
+      // Redirect directly to the full login screen page
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth';
+      }
       return false;
     }
     return true;
