@@ -37,7 +37,12 @@ export async function POST(request) {
       return NextResponse.json({ success: false, message: 'Invalid coupon code' }, { status: 404 });
     }
 
-    // Check validity dates
+    // ── ACTIVE CHECK ── Admin-controlled. Must be enforced server-side.
+    if (!coupon.is_active) {
+      return NextResponse.json({ success: false, message: 'This coupon is not currently active.' }, { status: 400 });
+    }
+
+    // Check validity dates (expiry) — separate from admin is_active control
     const now = new Date();
     if (coupon.valid_from && new Date(coupon.valid_from) > now) {
       return NextResponse.json({ success: false, message: 'Coupon is not yet active' }, { status: 400 });
@@ -51,23 +56,45 @@ export async function POST(request) {
       return NextResponse.json({ success: false, message: `Minimum cart value of ₹${coupon.min_cart_value} required` }, { status: 400 });
     }
 
-    // Determine Stacking Category (Additive vs Exclusive)
+    // Determine Stacking Category (Stackable vs Non-Stackable / Exclusive)
     const isAdditive = coupon.is_additive === true || (coupon.discount_type && coupon.discount_type.includes('ADDITIVE'));
     const rawDiscountType = (coupon.discount_type || 'PERCENTAGE').replace('_ADDITIVE', '');
 
-    // 1. Check if this exact coupon is already applied
+    // 1. Check if this exact coupon is already applied (prevent duplicate application)
     if (activeCoupons.some(c => c.code.toUpperCase() === coupon.code.toUpperCase())) {
       return NextResponse.json({ success: false, message: 'This coupon code is already applied.' }, { status: 400 });
     }
 
-    // 2. Check Stacking Rules:
-    // Non-additive (exclusive) coupons cannot combine with other non-additive coupons
-    if (!isAdditive && !coupon.is_gift_voucher) {
-      const hasExistingExclusive = activeCoupons.some(c => !c.isAdditive && !c.isGiftVoucher);
-      if (hasExistingExclusive) {
-        return NextResponse.json({ 
-          success: false, 
-          message: 'An exclusive single-use coupon is already applied. Non-additive coupons cannot be stacked.' 
+    // 2. Stacking Rules (matches the combination table exactly):
+    //
+    //  | Existing Coupon | New Coupon      | Result  |
+    //  | None            | Stackable       | ✅ Allow |
+    //  | None            | Non-Stackable   | ✅ Allow |
+    //  | Stackable       | Stackable       | ✅ Allow |
+    //  | Stackable       | Non-Stackable   | ❌ Reject|
+    //  | Non-Stackable   | Stackable       | ❌ Reject|
+    //  | Non-Stackable   | Non-Stackable   | ❌ Reject|
+    //
+    // In plain English: a coupon can only be added if ALL already-applied coupons
+    // are Stackable AND the new coupon itself is Stackable.
+    // The only valid multi-coupon state is: every applied coupon is Stackable.
+
+    if (activeCoupons.length > 0) {
+      const hasExistingNonStackable = activeCoupons.some(c => !c.isAdditive && !c.isGiftVoucher);
+
+      if (hasExistingNonStackable) {
+        // A Non-Stackable coupon is already applied → reject anything new
+        return NextResponse.json({
+          success: false,
+          message: 'A non-stackable coupon is already applied. It cannot be combined with any other coupon.'
+        }, { status: 400 });
+      }
+
+      if (!isAdditive && !coupon.is_gift_voucher) {
+        // All existing coupons are Stackable, but the new one is Non-Stackable → reject
+        return NextResponse.json({
+          success: false,
+          message: 'This is a non-stackable coupon and cannot be combined with your already-applied coupon(s). Please remove existing coupons first.'
         }, { status: 400 });
       }
     }
@@ -88,15 +115,15 @@ export async function POST(request) {
     // Category Specific Calculation
     let eligibleSubtotal = cartValue;
     if (coupon.coupon_category && coupon.coupon_category !== 'ALL' && cartItems && cartItems.length > 0) {
-      const eligibleItems = cartItems.filter(item => 
+      const eligibleItems = cartItems.filter(item =>
         (item.department && item.department.toLowerCase() === coupon.coupon_category.toLowerCase()) ||
         (item.category && item.category.toLowerCase() === coupon.coupon_category.toLowerCase())
       );
 
       if (eligibleItems.length === 0) {
-        return NextResponse.json({ 
-          success: false, 
-          message: `This coupon applies strictly to ${coupon.coupon_category} items. No matching items found in your cart.` 
+        return NextResponse.json({
+          success: false,
+          message: `This coupon applies strictly to ${coupon.coupon_category} items. No matching items found in your cart.`
         }, { status: 400 });
       }
 
@@ -121,7 +148,7 @@ export async function POST(request) {
 
     return NextResponse.json({
       success: true,
-      message: `${isAdditive ? '➕ Additive Coupon' : 'Coupon'} applied successfully!`,
+      message: `${isAdditive ? '➕ Stackable Coupon' : 'Coupon'} applied successfully!`,
       discountAmount: Math.round(discountAmount * 100) / 100,
       coupon: {
         id: coupon.id,
