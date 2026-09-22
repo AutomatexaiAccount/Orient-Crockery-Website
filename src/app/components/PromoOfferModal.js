@@ -47,12 +47,15 @@ export default function PromoOfferModal() {
       try {
         const { data, error } = await supabase.from('promo_config').select('*').eq('id', 1).single();
         if (!error && data) {
+          // Check DB column `enabled` FIRST before anything else
           if (data.enabled === false) return;
           activeConfig = {
             ...DEFAULT_CONFIG,
-            enabled: data.enabled ?? true,
             bannerImageUrl: data.image_url ?? '',
-            ...data.config_json
+            // Spread config_json AFTER setting defaults so it fills in display fields
+            ...(data.config_json || {}),
+            // DB column enabled is authoritative — always override whatever config_json may contain
+            enabled: data.enabled ?? true,
           };
         } else {
           const saved = localStorage.getItem("orient_promo_popup_config");

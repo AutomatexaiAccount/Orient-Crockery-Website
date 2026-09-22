@@ -671,7 +671,12 @@ function CatalogContent() {
                         </div>
                       )}
                       <div className="product-price-row">
-                        <span className="product-price">₹{product.price.toFixed(2)}</span>
+                        <div className="product-price" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          ₹{product.price.toFixed(2)}
+                          {product.mrp && product.mrp !== product.price && (
+                            <span style={{ fontSize: "0.85rem", color: "#94a3b8", textDecoration: "line-through", fontWeight: "500" }}>₹{product.mrp.toFixed(2)}</span>
+                          )}
+                        </div>
                         <button 
                           className="product-action-btn"
                           onClick={(e) => handleAddToCart(product, e)}
@@ -689,48 +694,7 @@ function CatalogContent() {
         </main>
       </div>
 
-      {/* Floating Filter Quick Action Button */}
-      <div style={{ position: "fixed", bottom: "30px", left: "30px", zIndex: 990 }}>
-        <button 
-          type="button"
-          onClick={() => {
-            setMasterFiltersOpen(true);
-            setTimeout(() => {
-              const sidebar = document.querySelector(".filter-sidebar-pro");
-              if (sidebar) {
-                const topOffset = sidebar.getBoundingClientRect().top + window.scrollY - 80;
-                window.scrollTo({ top: topOffset, behavior: "smooth" });
-              }
-            }, 50);
-          }}
-          style={{
-            background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
-            color: "#ffffff",
-            border: "1.5px solid rgba(255, 255, 255, 0.2)",
-            padding: "10px 18px",
-            borderRadius: "30px",
-            boxShadow: "0 10px 25px rgba(0, 0, 0, 0.25)",
-            cursor: "pointer",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "8px",
-            fontSize: "0.82rem",
-            fontWeight: "700",
-            letterSpacing: "0.5px",
-            backdropFilter: "blur(10px)",
-            transition: "transform 0.2s ease, boxShadow 0.2s ease"
-          }}
-          title="Jump to Catalog Filters"
-        >
-          <i className="fa-solid fa-sliders" style={{ color: "var(--primary)" }}></i>
-          <span>Filter Catalog</span>
-          {totalActiveFiltersCount > 0 && (
-            <span style={{ background: "var(--primary)", color: "#fff", padding: "2px 7px", borderRadius: "10px", fontSize: "0.72rem" }}>
-              {totalActiveFiltersCount}
-            </span>
-          )}
-        </button>
-      </div>
+
 
       {/* Toast notification wrapper */}
       <div className={`toast toast-success ${showToast ? "show" : ""}`}>

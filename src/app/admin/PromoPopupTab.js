@@ -4,6 +4,13 @@ import React, { useState, useEffect } from "react";
 import { supabase } from "../../supabase";
 import ConfirmModal from "./ConfirmModal";
 
+// Shared helper — mirrors pattern in other admin tabs
+async function getAdminAuthHeader() {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 const DEFAULT_CONFIG = {
   enabled: true,
   title: "Special Offer - Free Gift Voucher",
@@ -25,26 +32,33 @@ export default function PromoPopupTab() {
 
   const loadPromoConfig = async () => {
     try {
-      const { data, error } = await supabase.from('promo_config').select('*').eq('id', 1).single();
-      if (!error && data) {
+      const authHeader = await getAdminAuthHeader();
+      const res = await fetch("/api/admin/promo", {
+        method: "GET",
+        headers: { "Content-Type": "application/json", ...authHeader },
+      });
+      const result = await res.json();
+      if (result.success && result.data) {
+        const { enabled, config_json } = result.data;
         setConfig(prev => ({
           ...prev,
-          enabled: data.enabled ?? prev.enabled,
-          bannerImageUrl: data.image_url ?? prev.bannerImageUrl,
-          ...data.config_json
+          ...(config_json || {}),
+          // DB column enabled always wins over anything inside config_json
+          enabled: typeof enabled === "boolean" ? enabled : prev.enabled,
         }));
         return;
       }
     } catch (e) {
-      console.log("Error loading promo config from Supabase:", e);
+      console.error("[PromoPopup] Error loading config:", e);
     }
+    // Fallback: try localStorage (read-only fallback, never primary source)
     try {
       const saved = localStorage.getItem("orient_promo_popup_config");
       if (saved) {
         setConfig({ ...DEFAULT_CONFIG, ...JSON.parse(saved) });
       }
     } catch (e) {
-      console.error("Error loading promo popup config:", e);
+      console.error("[PromoPopup] localStorage fallback error:", e);
     }
   };
 
@@ -54,27 +68,49 @@ export default function PromoPopupTab() {
 
   const handleSave = async (e) => {
     e.preventDefault();
+    setMessage("Saving...");
     try {
+      const authHeader = await getAdminAuthHeader();
+
+      const payload = {
+        enabled: config.enabled,
+        title: config.title,
+        subtitle: config.subtitle,
+        couponCode: config.couponCode,
+        discountText: config.discountText,
+        minOrderText: config.minOrderText,
+        bannerTitle: config.bannerTitle,
+        bannerSubtitle: config.bannerSubtitle,
+        bannerImageUrl: config.bannerImageUrl,
+        delaySeconds: config.delaySeconds,
+        giftWrapFee: config.giftWrapFee,
+      };
+
+      const res = await fetch("/api/admin/promo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeader },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await res.json();
+
+      if (!result.success) {
+        setMessage("✗ Error saving: " + (result.message || "Unknown error"));
+        setTimeout(() => setMessage(""), 6000);
+        return;
+      }
+
+      // Also keep localStorage in sync for PromoOfferModal offline fallback
       localStorage.setItem("orient_promo_popup_config", JSON.stringify(config));
       localStorage.setItem("orient_gift_wrap_fee", String(config.giftWrapFee || 50));
       window.dispatchEvent(new Event("orient_promo_config_updated"));
 
-      const { error } = await supabase.from('promo_config').upsert({
-        id: 1,
-        enabled: config.enabled,
-        image_url: config.bannerImageUrl || '',
-        target_url: '',
-        config_json: config,
-        updated_at: new Date().toISOString()
-      });
-      if (error) {
-        console.warn("Supabase promo_config save fallback to local storage:", error.message);
-      }
-
-      setMessage("✓ Promo & Store Gift Wrap settings saved successfully to Cloud & Sync!");
+      setMessage("✓ Promo & Store Gift Wrap settings saved successfully!");
       setTimeout(() => setMessage(""), 4000);
     } catch (e) {
-      setMessage("Saved locally.");
+      console.error("[PromoPopup] handleSave error:", e);
+      setMessage("✗ Network error: " + e.message);
+      setTimeout(() => setMessage(""), 6000);
     }
   };
 

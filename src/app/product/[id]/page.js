@@ -187,6 +187,11 @@ export default function ProductDetailPage() {
               <h1 className="modal-title" style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>{selectedProduct.name}</h1>
               <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "1rem" }}>
                 <span className="product-price" style={{ fontSize: "1.5rem" }}>₹{selectedProduct.price.toFixed(2)}</span>
+                {selectedProduct.mrp && selectedProduct.mrp !== selectedProduct.price && (
+                  <span style={{ fontSize: "1.1rem", color: "#94a3b8", textDecoration: "line-through", fontWeight: "500" }}>
+                    ₹{selectedProduct.mrp.toFixed(2)}
+                  </span>
+                )}
                 {selectedProduct.stockStatus !== 'Out of Stock' && selectedProduct.stock > 0 && selectedProduct.stock <= 30 && (
                   <span style={{ color: '#d32f2f', fontSize: '0.85rem', fontWeight: 'bold' }}>
                     🔥 Only {selectedProduct.stock} left
@@ -266,6 +271,26 @@ export default function ProductDetailPage() {
                   <div style={{ fontSize: "0.65rem", color: "#64748b", marginTop: "4px" }}>Local dispatch</div>
                 </div>
               </div>
+
+              {/* Warranty Badge */}
+              {selectedProduct.warranty && selectedProduct.warranty !== "No Warranty" && (
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  padding: "10px 14px",
+                  backgroundColor: "#f0fdf4",
+                  border: "1px solid #bbf7d0",
+                  borderRadius: "10px",
+                  marginBottom: "1.5rem"
+                }}>
+                  <i className="fa-solid fa-shield-halved" style={{ color: "#16a34a", fontSize: "1.1rem", flexShrink: 0 }}></i>
+                  <div>
+                    <div style={{ fontSize: "0.72rem", fontWeight: "700", color: "#15803d", textTransform: "uppercase", letterSpacing: "0.5px" }}>Warranty</div>
+                    <div style={{ fontSize: "0.88rem", fontWeight: "600", color: "#14532d" }}>{selectedProduct.warranty}</div>
+                  </div>
+                </div>
+              )}
 
               {/* About this product */}
               <div style={{ border: "1px solid #e2e8f0", borderRadius: "12px", backgroundColor: "#fff", overflow: "hidden", marginBottom: "2rem", boxShadow: "0 2px 8px rgba(0,0,0,0.03)" }}>
@@ -376,7 +401,12 @@ export default function ProductDetailPage() {
                       </div>
                       <h3 className="product-title" style={{ fontSize: "1rem", fontWeight: "600", color: "#1e293b", margin: "0 0 12px 0", lineHeight: "1.4" }}>{rp.name}</h3>
                       <div className="product-footer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <div className="product-price" style={{ fontSize: "1.2rem", fontWeight: "700", color: "#0f172a" }}>₹{rp.price.toFixed(2)}</div>
+                        <div className="product-price" style={{ fontSize: "1.2rem", fontWeight: "700", color: "#0f172a", display: "flex", alignItems: "center", gap: "6px" }}>
+                          ₹{rp.price.toFixed(2)}
+                          {rp.mrp && rp.mrp !== rp.price && (
+                            <span style={{ fontSize: "0.85rem", color: "#94a3b8", textDecoration: "line-through", fontWeight: "500" }}>₹{rp.mrp.toFixed(2)}</span>
+                          )}
+                        </div>
                         <button 
                           className="btn-add-to-cart"
                           onClick={(e) => handleAddToCart(rp, e)}

@@ -430,7 +430,7 @@ export default function AdminPage() {
       if (singleUploadImages.length > 0) {
         const imagesToUpload = singleUploadImages.slice(0, 5);
         for (const file of imagesToUpload) {
-          const options = { maxSizeMB: 2.0, maxWidthOrHeight: 2048, initialQuality: 0.92, useWebWorker: true };
+          const options = { maxSizeMB: 5.0, maxWidthOrHeight: 4000, initialQuality: 0.95, useWebWorker: true };
           let fileToUpload = file;
           try {
             fileToUpload = await imageCompression(file, options);
@@ -451,6 +451,7 @@ export default function AdminPage() {
       const newProductRecord = {
         id: id,
         name: newProduct.name,
+        mrp: parseFloat(newProduct.mrp) || null,
         price: parseFloat(newProduct.price),
         stock: parseInt(newProduct.stock),
         department: newProduct.department,
@@ -492,7 +493,7 @@ export default function AdminPage() {
       triggerToast("Product added successfully!");
       setShowAddProductModal(false);
       setNewProduct({
-        name: "", price: "", stock: "", stockStatus: "Available", department: "Crockery & Dining",
+        name: "", mrp: "", price: "", stock: "", stockStatus: "Available", department: "Crockery & Dining",
         barcode: "", hsn: "", gst: 18, description: "", fragile: false, microwave: false, category: "General",
         search_tags: "",
         video_enabled: false,
@@ -858,7 +859,7 @@ export default function AdminPage() {
       const filesToUpload = singleUploadImages.slice(0, availableSlots);
       for (let i = 0; i < filesToUpload.length; i++) {
         const file = filesToUpload[i];
-        const options = { maxSizeMB: 2.0, maxWidthOrHeight: 2048, initialQuality: 0.92, useWebWorker: true };
+        const options = { maxSizeMB: 5.0, maxWidthOrHeight: 4000, initialQuality: 0.95, useWebWorker: true };
         try {
           const compressedFile = await imageCompression(file, options);
           const fileName = `${Date.now()}_${file.name}`;
@@ -888,6 +889,7 @@ export default function AdminPage() {
       ...editingProduct,
       images: uploadedImageUrls,
       image: uploadedImageUrls.length > 0 ? uploadedImageUrls[0] : (editingProduct.image || '/placeholder.jpg'),
+      mrp: parseFloat(editingProduct.mrp) || null,
       price: parseFloat(editingProduct.price),
       stock: editingProduct.stockStatus === "Out of Stock" ? 0 : parseInt(editingProduct.stock),
       soldCount: parseInt(editingProduct.soldCount) || 0,
@@ -996,7 +998,7 @@ export default function AdminPage() {
     if (singleUploadImages && singleUploadImages.length > 0) {
       for (let i = 0; i < singleUploadImages.length; i++) {
         const file = singleUploadImages[i];
-        const options = { maxSizeMB: 2.0, maxWidthOrHeight: 2048, initialQuality: 0.92, useWebWorker: true };
+        const options = { maxSizeMB: 5.0, maxWidthOrHeight: 4000, initialQuality: 0.95, useWebWorker: true };
         try {
           const compressedFile = await imageCompression(file, options);
           const fileName = `${Date.now()}_${file.name}`;
@@ -1238,6 +1240,7 @@ export default function AdminPage() {
         return {
           id: prodId,
           name: item.name || `Imported Product #${prodId}`,
+          mrp: parseFloat(item.mrp) || null,
           price: parseFloat(item.price) || 0,
           stock: parseInt(item.stock) || 0,
           department: item.department || "Crockery & Dining",
@@ -2858,16 +2861,28 @@ export default function AdminPage() {
                     onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
                   />
                 </div>
-                <div className="form-group">
-                  <span className="form-label">Price (₹)</span>
-                  <input 
-                    type="number" 
-                    className="form-input" 
-                    required
-                    placeholder="e.g. 1500"
-                    value={newProduct.price}
-                    onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
-                  />
+                <div className="form-group" style={{ display: 'flex', gap: '10px' }}>
+                  <div style={{ flex: 1 }}>
+                    <span className="form-label">MRP (₹)</span>
+                    <input 
+                      type="number" 
+                      className="form-input" 
+                      placeholder="e.g. 2500"
+                      value={newProduct.mrp || ""}
+                      onChange={(e) => setNewProduct({ ...newProduct, mrp: e.target.value })}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <span className="form-label">Price (Selling Price)</span>
+                    <input 
+                      type="number" 
+                      className="form-input" 
+                      required
+                      placeholder="e.g. 1500"
+                      value={newProduct.price}
+                      onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
+                    />
+                  </div>
                 </div>
                 <div className="form-group">
                   <span className="form-label">Stock Units</span>
@@ -3238,14 +3253,25 @@ export default function AdminPage() {
                   </span>
                 </div>
 
-                <div className="form-group">
-                  <span className="form-label">Price (₹)</span>
-                  <input 
-                    type="number" 
-                    className="form-input" 
-                    value={editingProduct.price}
-                    onChange={(e) => setEditingProduct({ ...editingProduct, price: e.target.value })}
-                  />
+                <div className="form-group" style={{ display: 'flex', gap: '10px' }}>
+                  <div style={{ flex: 1 }}>
+                    <span className="form-label">MRP (₹)</span>
+                    <input 
+                      type="number" 
+                      className="form-input" 
+                      value={editingProduct.mrp || ""}
+                      onChange={(e) => setEditingProduct({ ...editingProduct, mrp: e.target.value })}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <span className="form-label">Price (Selling Price)</span>
+                    <input 
+                      type="number" 
+                      className="form-input" 
+                      value={editingProduct.price}
+                      onChange={(e) => setEditingProduct({ ...editingProduct, price: e.target.value })}
+                    />
+                  </div>
                 </div>
                 
                 <div className="form-group">

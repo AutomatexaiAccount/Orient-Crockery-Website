@@ -57,6 +57,7 @@ export async function POST(request) {
     // If is_additive column doesn't exist in Supabase DB schema, fallback without it
     if (error && error.message.includes('is_additive')) {
       delete sanitizedPayload.is_additive;
+      sanitizedPayload.discount_type = isAdditive ? `${cleanType}_ADDITIVE` : cleanType;
       const res = await targetClient.from('coupons').insert([sanitizedPayload]).select();
       error = res.error;
       data = res.data;

@@ -74,11 +74,26 @@ export async function POST(request) {
       return NextResponse.json({ success: false, message: 'No fields to update' }, { status: 400 });
     }
 
-    const { data, error } = await targetClient
+    let { data, error } = await targetClient
       .from('coupons')
       .update(updatePayload)
       .eq('id', id)
       .select();
+
+    // If 'is_additive' column doesn't exist in Supabase DB, fallback to encoding it in 'discount_type'
+    if (error && error.message.includes('is_additive')) {
+      delete updatePayload.is_additive;
+      updatePayload.discount_type = isAdditive ? `${cleanType}_ADDITIVE` : cleanType;
+      
+      const retry = await targetClient
+        .from('coupons')
+        .update(updatePayload)
+        .eq('id', id)
+        .select();
+        
+      data = retry.data;
+      error = retry.error;
+    }
 
     if (error) {
       console.error('Error editing coupon:', error);

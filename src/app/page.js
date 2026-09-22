@@ -365,7 +365,12 @@ export default function Home() {
                     </div>
                   )}
                   <div className="product-price-row">
-                    <span className="product-price">₹{product.price.toFixed(2)}</span>
+                    <div className="product-price" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      ₹{product.price.toFixed(2)}
+                      {product.mrp && product.mrp !== product.price && (
+                        <span style={{ fontSize: "0.85rem", color: "#94a3b8", textDecoration: "line-through", fontWeight: "500" }}>₹{product.mrp.toFixed(2)}</span>
+                      )}
+                    </div>
                     <button 
                       className="product-action-btn"
                       onClick={(e) => handleAddToCart(product, e)}

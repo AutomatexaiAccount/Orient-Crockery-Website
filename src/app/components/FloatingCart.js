@@ -9,11 +9,13 @@ export default function FloatingCart() {
   const { cartItemCount } = useApp();
   const pathname = usePathname();
 
-  // Hide on admin, delivery, and cart pages themselves
+  // Hide on admin, delivery, auth, and cart pages themselves
   if (
     pathname && 
     (pathname.startsWith('/admin') || 
      pathname.startsWith('/delivery') || 
+     pathname.startsWith('/auth') || 
+     pathname.startsWith('/reset-password') || 
      pathname === '/cart' || 
      pathname === '/checkout')
   ) {
