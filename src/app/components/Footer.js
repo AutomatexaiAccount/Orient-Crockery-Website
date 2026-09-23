@@ -57,12 +57,24 @@ export default function Footer() {
               </ul>
             </div>
 
+            <div className="footer-nav-col">
+              <h4 className="footer-heading">Support & Legal</h4>
+              <ul className="footer-links">
+                <li><Link href="/contact">Contact Us</Link></li>
+                <li><Link href="/about">About Us</Link></li>
+                <li><Link href="/terms">Terms & Conditions</Link></li>
+                <li><Link href="/privacy">Privacy Policy</Link></li>
+                <li><Link href="/refund">Cancellation & Refund Policy</Link></li>
+                <li><Link href="/shipping">Shipping & Delivery Policy</Link></li>
+              </ul>
+            </div>
           </div>
         </div>
 
         <div className="footer-bottom-bar">
           <div className="footer-bottom-links">
-            <a href="#">Privacy Policy</a>
+            <Link href="/terms">Terms & Conditions</Link>
+            <Link href="/privacy">Privacy Policy</Link>
           </div>
           <div className="footer-copyright">
             &copy; {new Date().getFullYear()} Orient Crockeries. Developed by <span>Digify Soft Solutions</span>

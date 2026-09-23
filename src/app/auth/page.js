@@ -24,6 +24,8 @@ export default function AuthPage() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   // OTP states
   const [otpCode, setOtpCode] = useState('');
@@ -347,13 +349,23 @@ export default function AuthPage() {
                         </button>
                       )}
                     </div>
-                    <input 
-                      type="password" 
-                      value={password} 
-                      onChange={(e) => setPassword(e.target.value)} 
-                      required={!isLogin || authMethod === 'password'} 
-                      placeholder="••••••••"
-                    />
+                    <div style={{ position: 'relative', width: '100%' }}>
+                      <input 
+                        type={showPassword ? "text" : "password"} 
+                        value={password} 
+                        onChange={(e) => setPassword(e.target.value)} 
+                        required={!isLogin || authMethod === 'password'} 
+                        placeholder="••••••••"
+                        style={{ paddingRight: '40px', width: '100%' }}
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => setShowPassword(!showPassword)} 
+                        style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0 }}
+                      >
+                        <i className={`fa-regular ${showPassword ? "fa-eye-slash" : "fa-eye"}`}></i>
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -404,13 +416,23 @@ export default function AuthPage() {
                 {isResetMode && (
                   <div className="auth-form-group">
                     <label>Confirm New Password</label>
-                    <input 
-                      type="password" 
-                      value={confirmPassword} 
-                      onChange={(e) => setConfirmPassword(e.target.value)} 
-                      required 
-                      placeholder="••••••••"
-                    />
+                    <div style={{ position: 'relative', width: '100%' }}>
+                      <input 
+                        type={showConfirmPassword ? "text" : "password"} 
+                        value={confirmPassword} 
+                        onChange={(e) => setConfirmPassword(e.target.value)} 
+                        required 
+                        placeholder="••••••••"
+                        style={{ paddingRight: '40px', width: '100%' }}
+                      />
+                      <button 
+                        type="button" 
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)} 
+                        style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0 }}
+                      >
+                        <i className={`fa-regular ${showConfirmPassword ? "fa-eye-slash" : "fa-eye"}`}></i>
+                      </button>
+                    </div>
                   </div>
                 )}
 

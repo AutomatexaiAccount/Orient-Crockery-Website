@@ -833,6 +833,124 @@ export default function AdminPage() {
     document.body.removeChild(a);
   };
 
+  const exportInventoryToCSV = () => {
+    if (productsList.length === 0) {
+      triggerToast("No inventory data to export.");
+      return;
+    }
+
+    const csvData = Papa.unparse(productsList.map(p => ({
+      id: p.id,
+      name: p.name,
+      mrp: p.mrp || '',
+      price: p.price,
+      stock: p.stock,
+      department: p.department || '',
+      category: p.category || '',
+      barcode: p.barcode || '',
+      hsn: p.hsn || '',
+      gst: p.gst || 18,
+      description: p.description || '',
+      fragile: p.fragile || false,
+      microwave: p.microwave || false,
+      search_tags: p.search_tags || '',
+      image: p.image || '',
+      images: Array.isArray(p.images) ? p.images.join('|') : (p.image || ''),
+      video_enabled: p.video_enabled || false,
+      youtube_url: p.youtube_url || '',
+      instagram_url: p.instagram_url || ''
+    })));
+
+    const blob = new Blob([csvData], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.setAttribute("download", `inventory_backup_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  const fileInputRefInventory = useRef(null);
+  
+  const handleRestoreInventoryClick = () => {
+    if (fileInputRefInventory.current) fileInputRefInventory.current.click();
+  };
+
+  const handleRestoreInventoryFromCSV = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        const rows = results.data;
+        if (!rows || rows.length === 0) {
+          triggerToast("CSV file is empty.", "error");
+          return;
+        }
+
+        const confirmRestore = window.confirm(`Found ${rows.length} products in backup. Do you want to restore them to the live database?`);
+        if (!confirmRestore) {
+          e.target.value = null;
+          return;
+        }
+
+        triggerToast(`Restoring ${rows.length} products... Please wait.`, "info");
+        
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const token = session?.access_token;
+          
+          let successCount = 0;
+          for (const row of rows) {
+            const product = {
+              id: row.id,
+              name: row.name,
+              mrp: parseFloat(row.mrp) || null,
+              price: parseFloat(row.price) || 0,
+              stock: parseInt(row.stock) || 0,
+              department: row.department,
+              category: row.category,
+              barcode: row.barcode,
+              hsn: row.hsn,
+              gst: parseFloat(row.gst) || 18,
+              description: row.description,
+              fragile: row.fragile === 'true' || row.fragile === true,
+              microwave: row.microwave === 'true' || row.microwave === true,
+              search_tags: row.search_tags,
+              image: row.image,
+              images: row.images ? row.images.split('|') : (row.image ? [row.image] : []),
+              image_settings: { video_enabled: row.video_enabled === 'true' || row.video_enabled === true },
+              youtube_url: row.youtube_url,
+              instagram_url: row.instagram_url
+            };
+
+            const res = await fetch('/api/admin/products/save', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+              },
+              body: JSON.stringify(product)
+            });
+            const data = await res.json();
+            if (data.success || (data.message && data.message.includes("duplicate key"))) {
+              successCount++;
+            }
+          }
+          alert(`Restore Complete! Successfully processed ${successCount} products.`);
+          loadDbData();
+        } catch (err) {
+          console.error("Restore failed:", err);
+          alert("Error restoring inventory: " + err.message);
+        }
+        
+        e.target.value = null;
+      }
+    });
+  };
   // Filters for products inventory
   const filteredProducts = productsList.filter(p => 
     p.name.toLowerCase().includes(inventorySearch.toLowerCase()) ||
@@ -2322,10 +2440,12 @@ export default function AdminPage() {
                       alignItems: 'center',
                       gap: '8px',
                       borderRadius: '8px',
-                      fontWeight: '600'
+                      fontWeight: '600',
+                      borderColor: '#0284c7',
+                      color: '#0284c7'
                     }}
                   >
-                    <i className="fa-solid fa-file-csv"></i> Export CSV
+                    <i className="fa-solid fa-download"></i> Backup CSV
                   </button>
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                     <i className="fa-solid fa-magnifying-glass" style={{ position: 'absolute', left: '12px', color: '#94a3b8', fontSize: '0.85rem' }}></i>
@@ -2737,6 +2857,19 @@ export default function AdminPage() {
                 />
                 <button className="btn btn-outline btn-sm" onClick={() => setShowBulkUploadModal(true)} style={{ borderColor: "var(--primary)", color: "var(--primary)" }}>
                   <i className="fa-solid fa-file-import"></i> Bulk Import
+                </button>
+                <input 
+                  type="file" 
+                  accept=".csv" 
+                  style={{ display: "none" }} 
+                  ref={fileInputRefInventory}
+                  onChange={handleRestoreInventoryFromCSV}
+                />
+                <button className="btn btn-outline btn-sm" onClick={handleRestoreInventoryClick} style={{ borderColor: "#059669", color: "#059669" }}>
+                  <i className="fa-solid fa-clock-rotate-left"></i> Restore Backup
+                </button>
+                <button className="btn btn-outline btn-sm" onClick={exportInventoryToCSV} style={{ borderColor: "#0284c7", color: "#0284c7" }}>
+                  <i className="fa-solid fa-download"></i> Backup CSV
                 </button>
                 <button className="btn btn-primary btn-sm" onClick={() => setShowAddProductModal(true)}>
                   <i className="fa-solid fa-plus"></i> Single Add

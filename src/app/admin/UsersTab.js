@@ -230,9 +230,9 @@ export default function UsersTab() {
             <button 
               onClick={exportToCSV}
               className="btn-primary" 
-              style={{ padding: "8px 16px", borderRadius: "6px", fontSize: "0.85rem", cursor: "pointer" }}
+              style={{ padding: "8px 16px", borderRadius: "6px", fontSize: "0.85rem", cursor: "pointer", backgroundColor: "#0284c7", borderColor: "#0284c7" }}
             >
-              <i className="fa-solid fa-file-csv"></i> Export CSV
+              <i className="fa-solid fa-download"></i> Backup CSV
             </button>
           </div>
         </div>

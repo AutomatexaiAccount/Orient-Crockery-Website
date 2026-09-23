@@ -22,7 +22,16 @@ export default function AccountPage() {
   const [editPincode, setEditPincode] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   
-
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState("");
 
   const triggerToast = (msg) => {
     setToastMessage(msg);
@@ -209,6 +218,51 @@ export default function AccountPage() {
     }
   };
 
+  const handleUpdatePassword = async () => {
+    setPasswordError("");
+    setPasswordSuccess("");
+    if (!oldPassword) {
+      return setPasswordError("Please enter your current password.");
+    }
+    if (!newPassword || newPassword.length < 6) {
+      return setPasswordError("New password must be at least 6 characters long.");
+    }
+    if (newPassword !== confirmPassword) {
+      return setPasswordError("New passwords do not match.");
+    }
+    
+    setIsUpdatingPassword(true);
+    try {
+      // 1. Verify the old password by attempting to sign in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: oldPassword,
+      });
+
+      if (signInError) {
+        throw new Error("Incorrect current password.");
+      }
+
+      // 2. If verification is successful, update the password
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+      
+      if (updateError) throw updateError;
+      
+      setPasswordSuccess("Your password has been updated successfully. You will receive a confirmation via email.");
+      setIsChangingPassword(false);
+      setOldPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err) {
+      setPasswordError(err.message || "Failed to update password");
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
+
+
   return (
     <div className="account-page-wrapper">
       {/* Luxury Hero Banner */}
@@ -380,7 +434,102 @@ export default function AccountPage() {
                         <i className="fa-solid fa-circle-check"></i> Verified Member
                       </span>
                     </div>
+
+                    {/* Password Change Section */}
+                    <div style={{ marginTop: '20px', borderTop: '1px solid var(--border)', paddingTop: '15px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isChangingPassword ? '15px' : '0' }}>
+                        <h4 style={{ margin: 0, fontFamily: 'var(--font-serif)', fontSize: '1.1rem', color: 'var(--text-main)' }}>
+                          <i className="fa-solid fa-lock" style={{ marginRight: '8px', color: 'var(--primary)' }}></i> Security & Password
+                        </h4>
+                        {!isChangingPassword && (
+                          <button onClick={() => { setIsChangingPassword(true); setPasswordSuccess(""); }} style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.85rem' }}>
+                            <i className="fa-solid fa-pen-to-square"></i> Change
+                          </button>
+                        )}
+                      </div>
+
+                      {passwordSuccess && !isChangingPassword && (
+                        <div style={{ width: '100%', padding: '0.6rem 0.8rem', background: '#f4f9f4', color: '#3c763d', borderRadius: '4px', fontSize: '0.85rem', border: '1px solid #d6e9c6', marginTop: '10px' }}>
+                          <i className="fa-solid fa-circle-check" style={{ marginRight: '5px' }}></i> {passwordSuccess}
+                        </div>
+                      )}
+                      
+                      {isChangingPassword && (
+                        <div className="detail-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '10px', width: '100%' }}>
+                          
+                          {passwordError && (
+                            <div style={{ width: '100%', padding: '0.6rem 0.8rem', background: '#fdf3f2', color: '#b94a48', borderRadius: '4px', fontSize: '0.85rem', border: '1px solid #fbc7c6' }}>
+                              <i className="fa-solid fa-circle-exclamation" style={{ marginRight: '5px' }}></i> {passwordError}
+                            </div>
+                          )}
+
+                          <span className="detail-label">Current Password</span>
+                          <div style={{ position: 'relative', width: '100%' }}>
+                            <input 
+                              type={showOldPassword ? "text" : "password"} 
+                              placeholder="Enter current password"
+                              value={oldPassword}
+                              onChange={(e) => setOldPassword(e.target.value)}
+                              style={{ padding: '0.8rem', width: '100%', borderRadius: '4px', border: '1px solid var(--border)', fontFamily: 'var(--font-sans)', fontSize: '1rem', paddingRight: '40px' }}
+                            />
+                            <button 
+                              type="button" 
+                              onClick={() => setShowOldPassword(!showOldPassword)} 
+                              style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                            >
+                              <i className={`fa-regular ${showOldPassword ? "fa-eye-slash" : "fa-eye"}`}></i>
+                            </button>
+                          </div>
+
+                          <span className="detail-label" style={{ marginTop: '5px' }}>New Password</span>
+                          <div style={{ position: 'relative', width: '100%' }}>
+                            <input 
+                              type={showNewPassword ? "text" : "password"} 
+                              placeholder="At least 6 characters"
+                              value={newPassword}
+                              onChange={(e) => setNewPassword(e.target.value)}
+                              style={{ padding: '0.8rem', width: '100%', borderRadius: '4px', border: '1px solid var(--border)', fontFamily: 'var(--font-sans)', fontSize: '1rem', paddingRight: '40px' }}
+                            />
+                            <button 
+                              type="button" 
+                              onClick={() => setShowNewPassword(!showNewPassword)} 
+                              style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                            >
+                              <i className={`fa-regular ${showNewPassword ? "fa-eye-slash" : "fa-eye"}`}></i>
+                            </button>
+                          </div>
+                          
+                          <span className="detail-label" style={{ marginTop: '5px' }}>Confirm New Password</span>
+                          <div style={{ position: 'relative', width: '100%' }}>
+                            <input 
+                              type={showConfirmPassword ? "text" : "password"} 
+                              placeholder="Re-enter new password"
+                              value={confirmPassword}
+                              onChange={(e) => setConfirmPassword(e.target.value)}
+                              style={{ padding: '0.8rem', width: '100%', borderRadius: '4px', border: '1px solid var(--border)', fontFamily: 'var(--font-sans)', fontSize: '1rem', paddingRight: '40px' }}
+                            />
+                            <button 
+                              type="button" 
+                              onClick={() => setShowConfirmPassword(!showConfirmPassword)} 
+                              style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                            >
+                              <i className={`fa-regular ${showConfirmPassword ? "fa-eye-slash" : "fa-eye"}`}></i>
+                            </button>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: '10px', marginTop: '10px', width: '100%' }}>
+                            <button onClick={handleUpdatePassword} disabled={isUpdatingPassword} className="btn" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', flex: 1 }}>
+                              {isUpdatingPassword ? "Updating..." : "Update Password"}
+                            </button>
+                            <button onClick={() => { setIsChangingPassword(false); setOldPassword(""); setNewPassword(""); setConfirmPassword(""); setPasswordError(""); }} disabled={isUpdatingPassword} className="btn btn-outline" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </>
+
                 )}
               </div>
             </div>
