@@ -48,8 +48,10 @@ export async function POST(request) {
     let totalGST = 0;
     
     items.forEach(item => {
-      subtotal += (item.price || 0) * (item.qty || item.quantity || 1);
-      const itemGst = ((item.price || 0) - ((item.price || 0) / 1.18)) * (item.qty || item.quantity || 1);
+      const itemBase = (item.price || 0) * (item.qty || item.quantity || 1);
+      const rate = (item.gst !== undefined && item.gst !== null && item.gst !== '') ? parseFloat(item.gst) : 18;
+      const itemGst = itemBase * (rate / 100);
+      subtotal += itemBase;
       totalGST += itemGst;
     });
 
@@ -130,7 +132,7 @@ export async function POST(request) {
       guest_phone: customerDetails.phone,
       total_mrp: subtotal,
       discount_amount: discountAmount,
-      taxable_value: subtotal - totalGST,
+      taxable_value: subtotal, // For exclusive, taxable value is the base subtotal
       tax_amount: totalGST,
       shipping_charge: (shippingFee || 0) + giftWrapFee,
       final_total: finalTotal,
@@ -174,15 +176,21 @@ export async function POST(request) {
     orderData = insData;
 
     if (items && items.length > 0 && orderData) {
-      const orderItems = items.map(item => ({
-        order_id: orderData.id,
-        product_id: String(item.id || "P101"),
-        product_name: item.name || item.title || 'Orient Tableware',
-        quantity: item.qty || item.quantity || 1,
-        mrp: item.price || 0,
-        selling_price: item.price || 0,
-        tax_amount: ((item.price || 0) - ((item.price || 0) / 1.18)) * (item.qty || item.quantity || 1)
-      }));
+      const orderItems = items.map(item => {
+        const rate = (item.gst !== undefined && item.gst !== null && item.gst !== '') ? parseFloat(item.gst) : 18;
+        const itemBase = (item.price || 0) * (item.qty || item.quantity || 1);
+        const itemGst = itemBase * (rate / 100);
+        return {
+          order_id: orderData.id,
+          product_id: String(item.id || "P101"),
+          product_name: item.name || item.title || 'Orient Tableware',
+          quantity: item.qty || item.quantity || 1,
+          mrp: item.price || 0,
+          selling_price: item.price || 0,
+          tax_amount: itemGst,
+          gst: rate
+        };
+      });
       const { error: itemsErr } = await supabaseAdmin.from("order_items").insert(orderItems);
       if (itemsErr) console.warn('Order items insert warning:', itemsErr.message);
     }

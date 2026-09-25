@@ -16,26 +16,60 @@ function TrackingContent() {
   const [errorMsg, setErrorMsg] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const mapOrderForInvoice = (order, orderItems) => ({
+    ...order,
+    id: order.order_number || order.id,
+    customerName: order.shipping_address?.name || 'Orient Patron',
+    customerPhone: order.guest_phone || order.shipping_address?.phone || '',
+    customerEmail: order.guest_email || '',
+    shippingAddress: typeof order.shipping_address === 'object' 
+      ? (order.shipping_address?.raw_text || `${order.shipping_address?.street || ''}, ${order.shipping_address?.area || ''}`) 
+      : order.shipping_address,
+    items: (orderItems && orderItems.length > 0) ? orderItems.map(it => ({
+      id: it.product_id,
+      name: it.product_name || `Tableware Item #${it.product_id}`,
+      price: parseFloat(it.selling_price || it.mrp) || 0,
+      quantity: it.quantity || 1,
+      gst: (it.gst !== undefined && it.gst !== null && it.gst !== '') ? parseFloat(it.gst) : 18,
+      mrp: parseFloat(it.mrp || it.selling_price) || 0,
+      hsn: it.hsn || '6912'
+    })) : [],
+    total: order.final_total || order.total || 0,
+    subtotal: order.total_mrp || 0,
+    shipping: order.shipping_charge || 0,
+    discount: order.discount_amount || 0,
+    status: ({'NEW':'Pending','PACKED':'Packed','DISPATCHED':'Shipped','DELIVERED':'Delivered'}[order.order_status] || order.order_status || 'Pending'),
+    courierStatus: order.courier_status || 'In Warehouse',
+  });
+
   const locateOrder = async (id) => {
     setLoading(true);
     setActiveOrder(null);
     setErrorMsg("");
 
     try {
+      let orderData = null;
+      let orderItems = [];
+
       const { data: order, error } = await supabase.from('orders').select('*').eq('order_number', id).single();
       
-      if (error) {
+      if (error || !order) {
         const { data: orderById, error: err2 } = await supabase.from('orders').select('*').eq('id', id).single();
-        if (orderById) {
-          setActiveOrder(orderById);
-        } else {
+        if (orderById) orderData = orderById;
+        else {
           setErrorMsg(`Could not find any order with code ${id}. Verify your order reference.`);
+          setLoading(false);
+          return;
         }
-      } else if (order) {
-        setActiveOrder(order);
       } else {
-        setErrorMsg(`Could not find any order with code ${id}. Verify your order reference.`);
+        orderData = order;
       }
+
+      // Fetch order items separately
+      const { data: items } = await supabase.from('order_items').select('*').eq('order_id', orderData.id);
+      orderItems = items || [];
+
+      setActiveOrder(mapOrderForInvoice(orderData, orderItems));
     } catch (err) {
       setErrorMsg("An error occurred while tracking. Please try again.");
     }

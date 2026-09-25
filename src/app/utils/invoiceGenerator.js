@@ -172,7 +172,8 @@ export const generateInvoicePDF = (order) => {
   const tableRows = [];
 
   let totalMRP = 0;
-  let totalTaxable = 0;
+  let totalTaxable = 0; // This is actually the gross total inclusive of tax in the original logic
+  let totalGstAmount = 0;
 
   items.forEach((item, index) => {
     const name = item.name || item.title || item.product_name || "Crockery Item";
@@ -182,13 +183,17 @@ export const generateInvoicePDF = (order) => {
     const disc = (mrp - price) * qty;
     const taxable = price * qty;
 
+    const itemGstPct = (item.gst !== undefined && item.gst !== null && item.gst !== '') ? parseFloat(item.gst) : 18;
+    const itemGst = taxable * (itemGstPct / 100);
+
     totalMRP += mrp * qty;
     totalTaxable += taxable;
+    totalGstAmount += itemGst;
 
     tableRows.push([
       (index + 1).toString(),
       name.substring(0, 35) + (name.length > 35 ? "..." : ""),
-      "6912",
+      item.hsn || "6912",
       qty.toString(),
       "Nos",
       mrp.toFixed(2),
@@ -232,30 +237,44 @@ export const generateInvoicePDF = (order) => {
   const finalY = doc.lastAutoTable.finalY || 130;
 
   // --- GST & TOTALS SUMMARY (SIDE-BY-SIDE) ---
-  const grandTotal = Number(order.total || order.final_total || order.subtotal || totalTaxable) || 0;
-  const gstTotal = Math.round(totalTaxable * 0.18);
+  const gstTotal = Math.round(totalGstAmount);
   const cgst = Math.round(gstTotal / 2);
   const sgst = Math.round(gstTotal / 2);
   const shipping = Number(order.shipping || order.shipping_charge || 0);
+  const discount = Number(order.discount || order.discount_amount || 0);
+  // Grand total = base + tax + shipping - discount (always re-derive from items, never trust stored value blindly)
+  const grandTotal = totalTaxable + gstTotal + shipping - discount;
 
   // Left Side: GST Breakdown Box
   doc.setFillColor(248, 250, 252);
-  doc.roundedRect(14, finalY + 5, 90, 28, 1, 1, "FD");
+  const boxHeight = 12 + (items.length * 6) + 10;
+  doc.roundedRect(14, finalY + 5, 100, boxHeight, 1, 1, "FD");
 
   doc.setFontSize(8);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(30, 58, 138);
-  doc.text("GST BREAKDOWN (18% GST Included)", 18, finalY + 11);
+  doc.text("GST BREAKDOWN PER ITEM", 18, finalY + 11);
 
   doc.setFontSize(7.5);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(71, 85, 105);
-  doc.text(`Taxable Value:  Rs. ${(totalTaxable - gstTotal).toFixed(2)}`, 18, finalY + 16);
-  doc.text(`CGST @ 9%:        Rs. ${cgst.toFixed(2)}`, 18, finalY + 21);
-  doc.text(`SGST @ 9%:        Rs. ${sgst.toFixed(2)}`, 18, finalY + 26);
+  let currentY = finalY + 17;
+  items.forEach(item => {
+    const rate = (item.gst !== undefined && item.gst !== null && item.gst !== '') ? parseFloat(item.gst) : 18;
+    const name = item.name || item.title || "Item";
+    const shortName = name.substring(0, 20) + (name.length > 20 ? "..." : "");
+    const taxable = (item.price || item.mrp || 0) * (item.qty || item.quantity || 1);
+    const tax = taxable * (rate / 100);
+    
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(71, 85, 105);
+    doc.text(`${rate}% GST on ${shortName}`, 18, currentY);
+    doc.text(`+ Rs. ${tax.toFixed(2)}`, 85, currentY);
+    currentY += 6;
+  });
+
   doc.setFont("helvetica", "bold");
   doc.setTextColor(30, 41, 59);
-  doc.text(`Total Tax:          Rs. ${gstTotal.toFixed(2)}`, 62, finalY + 26);
+  doc.text(`Total Tax:`, 18, currentY);
+  doc.text(`Rs. ${gstTotal.toFixed(2)}`, 85, currentY);
 
   // Right Side: Amount Summary Box
   doc.setFontSize(8);
@@ -263,9 +282,9 @@ export const generateInvoicePDF = (order) => {
   doc.setTextColor(71, 85, 105);
   
   doc.text("Gross Taxable Value:", 125, finalY + 10);
-  doc.text(`Rs. ${(totalTaxable - gstTotal).toFixed(2)}`, 196, finalY + 10, { align: "right" });
+  doc.text(`Rs. ${totalTaxable.toFixed(2)}`, 196, finalY + 10, { align: "right" });
 
-  doc.text("Total Tax (GST 18%):", 125, finalY + 15);
+  doc.text("Total Tax:", 125, finalY + 15);
   doc.text(`Rs. ${gstTotal.toFixed(2)}`, 196, finalY + 15, { align: "right" });
 
   if (shipping > 0) {

@@ -187,12 +187,17 @@ export default function ProductDetailPage() {
               <h1 className="modal-title" style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>{selectedProduct.name}</h1>
               <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "1rem" }}>
                 <span className="product-price" style={{ fontSize: "1.5rem" }}>₹{selectedProduct.price.toFixed(2)}</span>
-                {selectedProduct.mrp && selectedProduct.mrp !== selectedProduct.price && (
-                  <span style={{ fontSize: "1.1rem", color: "#94a3b8", textDecoration: "line-through", fontWeight: "500" }}>
-                    ₹{selectedProduct.mrp.toFixed(2)}
-                  </span>
+                {selectedProduct.mrp && selectedProduct.mrp > selectedProduct.price && (
+                  <>
+                    <span style={{ fontSize: "1.1rem", color: "#94a3b8", textDecoration: "line-through", fontWeight: "500" }}>
+                      ₹{selectedProduct.mrp.toFixed(2)}
+                    </span>
+                    <span style={{ backgroundColor: "#10b981", color: "#fff", padding: "3px 8px", borderRadius: "4px", fontSize: "0.8rem", fontWeight: "bold" }}>
+                      {Math.round(((selectedProduct.mrp - selectedProduct.price) / selectedProduct.mrp) * 100)}% OFF
+                    </span>
+                  </>
                 )}
-                {selectedProduct.stockStatus !== 'Out of Stock' && selectedProduct.stock > 0 && selectedProduct.stock <= 30 && (
+                {selectedProduct.stockStatus !== 'Out of Stock' && selectedProduct.stock > 0 && selectedProduct.stock <= 3 && (
                   <span style={{ color: '#d32f2f', fontSize: '0.85rem', fontWeight: 'bold' }}>
                     🔥 Only {selectedProduct.stock} left
                   </span>

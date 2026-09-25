@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useApp } from "./context/AppContext";
 import { getImageStyle } from "./utils/imageUtils";
+import { supabase } from "../supabase";
 import ProductImageZoomViewer from "./components/ProductImageZoomViewer";
 import ProductVideoEmbed from "./components/ProductVideoEmbed";
 
@@ -25,6 +26,17 @@ export default function Home() {
   const [toastMessage, setToastMessage] = useState("");
   const [showToast, setShowToast] = useState(false);
   const [hoveredHotspot, setHoveredHotspot] = useState(null);
+  const [collections, setCollections] = useState([]);
+
+  useEffect(() => {
+    const fetchCollections = async () => {
+      const { data, error } = await supabase.from('homepage_collections').select('*').order('sort_order', { ascending: true });
+      if (!error && data) {
+        setCollections(data);
+      }
+    };
+    fetchCollections();
+  }, []);
 
   // Filter 4 featured products to display on home page
   const featuredProducts = products
@@ -148,32 +160,19 @@ export default function Home() {
           <h2 className="section-title">Shop by Collection</h2>
         </div>
         <div className="category-grid">
-          {/* Dining */}
-          <Link href="/catalog?department=Crockery+%26+Dining" className="category-card">
-            <Image src="/images/crockery_dinner_set.png" alt="Fine Dining" fill sizes="(max-width: 768px) 100vw, 33vw" className="category-img" style={{ objectFit: 'cover' }} />
-            <div className="category-overlay">
-              <h3 className="category-name">Fine Dining</h3>
-              <span className="category-link">Discover Dinnerware &rarr;</span>
-            </div>
-          </Link>
-
-          {/* Cookware */}
-          <Link href="/catalog?department=Cookware" className="category-card">
-            <Image src="/images/stahl_hybrid_kadai.png" alt="Cookware" fill sizes="(max-width: 768px) 100vw, 33vw" className="category-img" style={{ objectFit: 'cover' }} />
-            <div className="category-overlay">
-              <h3 className="category-name">Cookware</h3>
-              <span className="category-link">Discover Culinary &rarr;</span>
-            </div>
-          </Link>
-
-          {/* Woodcraft */}
-          <Link href="/catalog?department=Woodcraft" className="category-card">
-            <Image src="/images/acacia_wood_casserole.png" alt="Woodcraft" fill sizes="(max-width: 768px) 100vw, 33vw" className="category-img" style={{ objectFit: 'cover' }} />
-            <div className="category-overlay">
-              <h3 className="category-name">Acacia Woodcraft</h3>
-              <span className="category-link">Discover Organics &rarr;</span>
-            </div>
-          </Link>
+          {collections.length > 0 ? (
+            collections.map(col => (
+              <Link key={col.id} href={`/catalog?department=${encodeURIComponent(col.title)}`} className="category-card">
+                <Image src={col.image_url} alt={col.title} fill sizes="(max-width: 768px) 100vw, 33vw" className="category-img" style={{ objectFit: 'cover' }} />
+                <div className="category-overlay">
+                  <h3 className="category-name">{col.title}</h3>
+                  <span className="category-link">Discover &rarr;</span>
+                </div>
+              </Link>
+            ))
+          ) : (
+            <p style={{ textAlign: "center", width: "100%", color: "var(--text-muted)" }}>Loading collections...</p>
+          )}
         </div>
       </section>
 
@@ -359,7 +358,7 @@ export default function Home() {
                 <div className="product-info">
                   <span className="product-category">{product.category}</span>
                   <h3 className="product-title">{product.name}</h3>
-                  {product.stockStatus !== 'Out of Stock' && product.stock > 0 && product.stock <= 30 && (
+                  {product.stockStatus !== 'Out of Stock' && product.stock > 0 && product.stock <= 3 && (
                     <div style={{ color: '#d32f2f', fontSize: '0.8rem', fontWeight: 'bold', marginTop: '4px', marginBottom: '8px' }}>
                       🔥 Only {product.stock} left
                     </div>
@@ -367,8 +366,13 @@ export default function Home() {
                   <div className="product-price-row">
                     <div className="product-price" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                       ₹{product.price.toFixed(2)}
-                      {product.mrp && product.mrp !== product.price && (
-                        <span style={{ fontSize: "0.85rem", color: "#94a3b8", textDecoration: "line-through", fontWeight: "500" }}>₹{product.mrp.toFixed(2)}</span>
+                      {product.mrp && product.mrp > product.price && (
+                        <>
+                          <span style={{ fontSize: "0.85rem", color: "#94a3b8", textDecoration: "line-through", fontWeight: "500" }}>₹{product.mrp.toFixed(2)}</span>
+                          <span style={{ backgroundColor: "#10b981", color: "#fff", padding: "2px 6px", borderRadius: "4px", fontSize: "0.7rem", fontWeight: "bold" }}>
+                            {Math.round(((product.mrp - product.price) / product.mrp) * 100)}% OFF
+                          </span>
+                        </>
                       )}
                     </div>
                     <button 

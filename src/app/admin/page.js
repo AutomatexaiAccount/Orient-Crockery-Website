@@ -11,6 +11,7 @@ import CouponsTab from "./CouponsTab";
 import InstructionsTab from "./InstructionsTab";
 import PromoPopupTab from "./PromoPopupTab";
 import UsersTab from "./UsersTab";
+import HomepageCollectionsTab from "./HomepageCollectionsTab";
 import { generateInvoicePDF } from "../utils/invoiceGenerator";
 import { useAuth } from "../context/AuthContext";
 import Link from "next/link";
@@ -250,7 +251,9 @@ export default function AdminPage() {
           extractedItems = dbOrder.order_items.map(i => ({
             name: i.products?.name || i.product_name || `Orient Premium Crockery SKU #${i.product_id}`,
             quantity: i.quantity || i.qty || 1,
-            price: i.price_at_time || (i.total_price / (i.quantity || 1)) || 0
+            price: i.selling_price || i.mrp || i.price_at_time || (i.total_price / (i.quantity || 1)) || 0,
+            gst: (i.gst !== undefined && i.gst !== null && i.gst !== '') ? parseFloat(i.gst) : 18,
+            mrp: i.mrp || i.selling_price || 0
           }));
         } else if (dbOrder.items && dbOrder.items.length > 0) {
           extractedItems = dbOrder.items;
@@ -849,7 +852,7 @@ export default function AdminPage() {
       category: p.category || '',
       barcode: p.barcode || '',
       hsn: p.hsn || '',
-      gst: p.gst || 18,
+      gst: (p.gst !== undefined && p.gst !== null && p.gst !== '') ? parseFloat(p.gst) : 18,
       description: p.description || '',
       fragile: p.fragile || false,
       microwave: p.microwave || false,
@@ -915,7 +918,7 @@ export default function AdminPage() {
               category: row.category,
               barcode: row.barcode,
               hsn: row.hsn,
-              gst: parseFloat(row.gst) || 18,
+              gst: (row.gst !== undefined && row.gst !== null && row.gst !== '') ? parseFloat(row.gst) : 18,
               description: row.description,
               fragile: row.fragile === 'true' || row.fragile === true,
               microwave: row.microwave === 'true' || row.microwave === true,
@@ -1011,7 +1014,7 @@ export default function AdminPage() {
       price: parseFloat(editingProduct.price),
       stock: editingProduct.stockStatus === "Out of Stock" ? 0 : parseInt(editingProduct.stock),
       soldCount: parseInt(editingProduct.soldCount) || 0,
-      gst: parseFloat(editingProduct.gst) || 18,
+      gst: (editingProduct.gst !== undefined && editingProduct.gst !== null && editingProduct.gst !== '') ? parseFloat(editingProduct.gst) : 18,
       rating,
       reviewCount: reviews.length,
       search_tags: editingProduct.search_tags || '',
@@ -1368,7 +1371,7 @@ export default function AdminPage() {
           microwave: Boolean(item.microwave),
           barcode: item.barcode || ("000" + Math.floor(Math.random() * 900000 + 100000)),
           hsn: item.hsn || "9505",
-          gst: parseFloat(item.gst) || 18,
+          gst: (item.gst !== undefined && item.gst !== null && item.gst !== '') ? parseFloat(item.gst) : 18,
           soldCount: parseInt(item.soldCount) || 0,
           description: item.description || "Premium dining collection by Orient Crockeries.",
           rating: parseFloat(item.rating) || 5.0,
@@ -2356,6 +2359,12 @@ export default function AdminPage() {
             <i className="fa-solid fa-bullhorn"></i> <span>Promo Popup</span>
           </button>
           <button 
+            className={`tab-btn ${activeTab === "homepage-collections" ? "active" : ""}`}
+            onClick={() => setActiveTab("homepage-collections")}
+          >
+            <i className="fa-solid fa-images"></i> <span>Homepage Setup</span>
+          </button>
+          <button 
             className={`tab-btn ${activeTab === "instructions" ? "active" : ""}`}
             onClick={() => setActiveTab("instructions")}
           >
@@ -2954,6 +2963,9 @@ export default function AdminPage() {
         {/* Tab 4: Promo Popup Manager */}
         {activeTab === "promo-popup" && <PromoPopupTab />}
 
+        {/* Tab X: Homepage Collections */}
+        {activeTab === "homepage-collections" && <HomepageCollectionsTab />}
+
         {/* Tab 5: Instructions */}
         {activeTab === "instructions" && <InstructionsTab />}
       </div>
@@ -3014,6 +3026,22 @@ export default function AdminPage() {
                       placeholder="e.g. 1500"
                       value={newProduct.price}
                       onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <span className="form-label">Discount (%)</span>
+                    <input 
+                      type="number" 
+                      className="form-input" 
+                      placeholder="e.g. 20"
+                      value={newProduct.mrp && newProduct.price && Number(newProduct.mrp) > Number(newProduct.price) ? Math.round(((Number(newProduct.mrp) - Number(newProduct.price)) / Number(newProduct.mrp)) * 100) : ""}
+                      onChange={(e) => {
+                        const pct = parseFloat(e.target.value);
+                        if (!isNaN(pct) && newProduct.mrp) {
+                          const newPrice = Number(newProduct.mrp) - (Number(newProduct.mrp) * (pct / 100));
+                          setNewProduct({ ...newProduct, price: Math.round(newPrice).toString() });
+                        }
+                      }}
                     />
                   </div>
                 </div>
@@ -3403,6 +3431,21 @@ export default function AdminPage() {
                       className="form-input" 
                       value={editingProduct.price}
                       onChange={(e) => setEditingProduct({ ...editingProduct, price: e.target.value })}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <span className="form-label">Discount (%)</span>
+                    <input 
+                      type="number" 
+                      className="form-input" 
+                      value={editingProduct.mrp && editingProduct.price && Number(editingProduct.mrp) > Number(editingProduct.price) ? Math.round(((Number(editingProduct.mrp) - Number(editingProduct.price)) / Number(editingProduct.mrp)) * 100) : ""}
+                      onChange={(e) => {
+                        const pct = parseFloat(e.target.value);
+                        if (!isNaN(pct) && editingProduct.mrp) {
+                          const newPrice = Number(editingProduct.mrp) - (Number(editingProduct.mrp) * (pct / 100));
+                          setEditingProduct({ ...editingProduct, price: Math.round(newPrice).toString() });
+                        }
+                      }}
                     />
                   </div>
                 </div>

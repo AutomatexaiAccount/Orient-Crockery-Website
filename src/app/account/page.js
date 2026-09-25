@@ -78,7 +78,10 @@ export default function AccountPage() {
               id: it.product_id,
               name: it.product_name || `Tableware Item #${it.product_id}`,
               price: parseFloat(it.selling_price || it.mrp) || 0,
-              quantity: it.quantity || 1
+              quantity: it.quantity || 1,
+              gst: (it.gst !== undefined && it.gst !== null && it.gst !== '') ? parseFloat(it.gst) : 18,
+              mrp: parseFloat(it.mrp || it.selling_price) || 0,
+              hsn: it.hsn || '6912'
             })) : (ord.items || []),
             subtotal: ord.total_mrp || ord.final_total || 0,
             shipping: ord.shipping_charge || 0,

@@ -665,7 +665,7 @@ function CatalogContent() {
                     <div className="product-info">
                       <span className="product-category">{product.category}</span>
                       <h3 className="product-title">{product.name}</h3>
-                      {product.stockStatus !== 'Out of Stock' && product.stock > 0 && product.stock <= 30 && (
+                      {product.stockStatus !== 'Out of Stock' && product.stock > 0 && product.stock <= 3 && (
                         <div style={{ color: '#d32f2f', fontSize: '0.8rem', fontWeight: 'bold', marginTop: '4px', marginBottom: '8px' }}>
                           🔥 Only {product.stock} left
                         </div>
@@ -673,8 +673,13 @@ function CatalogContent() {
                       <div className="product-price-row">
                         <div className="product-price" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                           ₹{product.price.toFixed(2)}
-                          {product.mrp && product.mrp !== product.price && (
-                            <span style={{ fontSize: "0.85rem", color: "#94a3b8", textDecoration: "line-through", fontWeight: "500" }}>₹{product.mrp.toFixed(2)}</span>
+                          {product.mrp && product.mrp > product.price && (
+                            <>
+                              <span style={{ fontSize: "0.85rem", color: "#94a3b8", textDecoration: "line-through", fontWeight: "500" }}>₹{product.mrp.toFixed(2)}</span>
+                              <span style={{ backgroundColor: "#10b981", color: "#fff", padding: "2px 6px", borderRadius: "4px", fontSize: "0.7rem", fontWeight: "bold" }}>
+                                {Math.round(((product.mrp - product.price) / product.mrp) * 100)}% OFF
+                              </span>
+                            </>
                           )}
                         </div>
                         <button 

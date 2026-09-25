@@ -72,7 +72,12 @@ export default function CheckoutPage() {
     
     // Recalculate grand total including gift wrapping if selected
     const activeGiftCharge = giftPackaging === "gift" ? giftWrapFee : 0;
-    const cartSubtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const cartSubtotal = cart.reduce((sum, item) => {
+      const rate = (item.gst !== undefined && item.gst !== null && item.gst !== '') ? parseFloat(item.gst) : 18;
+      const itemTotalExclusive = item.price * item.quantity;
+      const taxAmt = itemTotalExclusive * (rate / 100);
+      return sum + itemTotalExclusive + taxAmt;
+    }, 0);
     const calculatedTotal = cartSubtotal + currentShipping + activeGiftCharge - promoDiscount;
     setOrderTotal(calculatedTotal > 0 ? calculatedTotal : 0);
   }, [deliveryMethod, baseShippingFee, promoDiscount, cart, giftPackaging, giftWrapFee]);
@@ -94,15 +99,14 @@ export default function CheckoutPage() {
   }, [user]);
 
   // Compute subtotal and GST details item by item
-  const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const subtotalBase = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   
   // Tax calculations
   const taxItems = cart.map(item => {
-    const rate = item.gst || 18; // 18% or 5%
-    const itemTotal = item.price * item.quantity;
-    
-    // For inclusive GST: Tax Amount = Total Price - (Total Price / (1 + GST Rate / 100))
-    const taxAmt = itemTotal - (itemTotal / (1 + rate / 100));
+    const rate = (item.gst !== undefined && item.gst !== null && item.gst !== '') ? parseFloat(item.gst) : 18;
+    const itemTotalExclusive = item.price * item.quantity;
+    const taxAmt = itemTotalExclusive * (rate / 100);
+    const itemTotalInclusive = itemTotalExclusive + taxAmt;
     const cgst = taxAmt / 2;
     const sgst = taxAmt / 2;
 
@@ -111,7 +115,9 @@ export default function CheckoutPage() {
       cgst,
       sgst,
       rate,
-      taxableValue: itemTotal - taxAmt
+      taxAmt,
+      itemTotalExclusive,
+      itemTotalInclusive
     };
   });
 
@@ -531,13 +537,13 @@ export default function CheckoutPage() {
                       </span>
                       <input type="radio" name="giftPackagingRadio" checked={giftPackaging === "gift"} onChange={() => setGiftPackaging("gift")} style={{ flexShrink: 0 }} />
                     </div>
-                    <span style={{ fontSize: "0.74rem", color: "#be185d", fontWeight: "600", lineHeight: "1.3" }}>Luxury paper & Satin ribbon!</span>
+                    <span style={{ fontSize: "0.74rem", color: "#be185d", fontWeight: "600", lineHeight: "1.3" }}>+ ₹{giftWrapFee}</span>
                   </div>
                 </div>
                 {giftPackaging === "gift" && (
                   <div style={{ marginTop: "0.7rem", padding: "0.6rem 0.8rem", background: "#fdf2f8", borderRadius: "8px", border: "1px solid #fbcfe8", fontSize: "0.8rem", color: "#9d174d", lineHeight: "1.4" }}>
                     <i className="fa-solid fa-circle-check" style={{ marginRight: "6px" }}></i>
-                    <b>Gift Wrap Request Tagged:</b> Warehouse will wrap your items in gift paper with ribbon!
+                    <b>Gift Wrap Request Tagged</b>
                   </div>
                 )}
               </div>
@@ -759,26 +765,23 @@ export default function CheckoutPage() {
               {taxItems.map(item => (
                 <div key={item.id} style={{ display: "flex", justifyContent: "space-between", marginBottom: "1rem", fontSize: "0.9rem", alignItems: "center" }}>
                   <span style={{ color: "#333", fontWeight: "500" }}>{item.name} <span style={{ color: "var(--primary)", fontSize: "0.8rem", marginLeft: "4px" }}>x{item.quantity}</span></span>
-                  <span style={{ fontWeight: "600" }}>₹{(item.price * item.quantity).toFixed(2)}</span>
+                  <span style={{ fontWeight: "600" }}>₹{item.itemTotalExclusive.toFixed(2)}</span>
                 </div>
               ))}
             </div>
 
             <div style={{ borderTop: "2px dashed #e0e0e0", paddingTop: "1.5rem", marginBottom: "1rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.8rem", fontSize: "0.9rem" }}>
-                <span style={{ color: "#555" }}>Taxable Value (Before Taxes)</span>
-                <span style={{ fontWeight: "600" }}>₹{(subtotal - totalGST).toFixed(2)}</span>
+                <span style={{ color: "#555", fontWeight: "600" }}>Taxable Value (Before Taxes)</span>
+                <span style={{ fontWeight: "700", color: "#333" }}>₹{subtotalBase.toFixed(2)}</span>
               </div>
               
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.8rem", fontSize: "0.85rem", color: "#888" }}>
-                <span>Central GST (CGST)</span>
-                <span>₹{totalCGST.toFixed(2)}</span>
-              </div>
-
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.8rem", fontSize: "0.85rem", color: "#888" }}>
-                <span>State GST (SGST)</span>
-                <span>₹{totalSGST.toFixed(2)}</span>
-              </div>
+              {taxItems.map(item => (
+                <div key={`tax-${item.id}`} style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.8rem", fontSize: "0.85rem", color: "#888" }}>
+                  <span style={{ maxWidth: "70%" }}>{item.rate}% GST on {item.name.substring(0, 15)}...</span>
+                  <span>+₹{item.taxAmt.toFixed(2)}</span>
+                </div>
+              ))}
 
               {promoDiscount > 0 && (
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.8rem", fontSize: "0.9rem", color: "var(--success)", fontWeight: "500" }}>
