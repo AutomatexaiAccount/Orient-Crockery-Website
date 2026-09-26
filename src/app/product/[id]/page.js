@@ -45,20 +45,61 @@ export default function ProductDetailPage() {
   const relatedProducts = useMemo(() => {
     if (!selectedProduct || !products.length) return [];
     
-    let related = products.filter(p => p.category === selectedProduct.category && p.id !== selectedProduct.id);
+    // First, find exact variants of the same product
+    const getBaseName = (name) => {
+      const match = name.match(/^(.*?)\s+\d+(\.\d+)?\s*(cm|L|ml|inch)\b/i);
+      return match ? match[1].trim() : name;
+    };
+    const currentBaseName = getBaseName(selectedProduct.name);
     
-    if (related.length < 10) {
+    let related = products.filter(p => p.id !== selectedProduct.id && getBaseName(p.name) === currentBaseName);
+    
+    // If less than 5, backfill with same category
+    if (related.length < 5) {
+      const sameCat = products.filter(p => p.category === selectedProduct.category && p.id !== selectedProduct.id && getBaseName(p.name) !== currentBaseName);
+      related = [...related, ...sameCat];
+    }
+    
+    // If still less than 5, backfill with same department
+    if (related.length < 5) {
       const more = products.filter(p => p.department === selectedProduct.department && p.category !== selectedProduct.category && p.id !== selectedProduct.id);
       related = [...related, ...more];
     }
     
-    if (related.length < 10) {
+    // Final backfill
+    if (related.length < 5) {
       const others = products.filter(p => p.department !== selectedProduct.department && p.id !== selectedProduct.id && (p.rating >= 4.5 || p.id % 2 === 0));
       related = [...related, ...others];
     }
     
     return related.slice(0, 5);
   }, [selectedProduct, products]);
+
+  const variations = useMemo(() => {
+    if (!selectedProduct || !products.length) return [];
+    
+    const getBaseName = (name) => {
+      // Extract the common base name by matching everything before the size (e.g. 20cm, 2L)
+      const match = name.match(/^(.*?)\s+\d+(\.\d+)?\s*(cm|L|ml|inch)\b/i);
+      return match ? match[1].trim() : name;
+    };
+
+    const currentBaseName = getBaseName(selectedProduct.name);
+    if (currentBaseName === selectedProduct.name) return []; // No size pattern found
+
+    const variants = products.filter(p => {
+      if (p.id === selectedProduct.id) return false;
+      return p.category === selectedProduct.category && getBaseName(p.name) === currentBaseName;
+    });
+
+    if (variants.length === 0) return [];
+    return [selectedProduct, ...variants].sort((a, b) => a.price - b.price);
+  }, [selectedProduct, products]);
+
+  const getSizeLabel = (name) => {
+    const match = name.match(/\b\d+(\.\d+)?\s*(cm|L|ml|inch)\b/i);
+    return match ? match[0].toUpperCase() : "1 UNIT";
+  };
 
   const triggerToast = (msg) => {
     setToastMessage(msg);
@@ -203,22 +244,54 @@ export default function ProductDetailPage() {
                   </span>
                 )}
               </div>
-              {/* Pack Size / Option */}
-              <div style={{ marginTop: "1rem" }}>
-                <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "1px" }}>Pack Size / Option</span>
-                <div style={{ marginTop: "0.5rem", display: "flex", gap: "10px" }}>
-                  <button style={{
-                    padding: "8px 16px",
-                    borderRadius: "8px",
-                    border: "2px solid #10b981",
-                    backgroundColor: "#ecfdf5",
-                    color: "#047857",
-                    fontWeight: "600",
-                    fontSize: "0.85rem",
-                    cursor: "pointer"
-                  }}>1 BOX</button>
+              {/* Size / Option Variants */}
+              {variations.length > 0 ? (
+                <div style={{ marginTop: "1rem" }}>
+                  <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "1px" }}>Available Sizes</span>
+                  <div style={{ marginTop: "0.5rem", display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                    {variations.map((v) => {
+                      const isSelected = v.id === selectedProduct.id;
+                      return (
+                        <button 
+                          key={v.id}
+                          onClick={() => !isSelected && router.push(`/product/${v.id}`)}
+                          style={{
+                            padding: "8px 16px",
+                            borderRadius: "8px",
+                            border: isSelected ? "2px solid #10b981" : "1px solid #cbd5e1",
+                            backgroundColor: isSelected ? "#ecfdf5" : "#fff",
+                            color: isSelected ? "#047857" : "#475569",
+                            fontWeight: isSelected ? "700" : "500",
+                            fontSize: "0.85rem",
+                            cursor: isSelected ? "default" : "pointer",
+                            transition: "all 0.2s"
+                          }}
+                          onMouseEnter={(e) => !isSelected && (e.currentTarget.style.borderColor = "#94a3b8")}
+                          onMouseLeave={(e) => !isSelected && (e.currentTarget.style.borderColor = "#cbd5e1")}
+                        >
+                          {getSizeLabel(v.name)}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div style={{ marginTop: "1rem" }}>
+                  <span style={{ fontSize: "0.75rem", fontWeight: "700", color: "#64748b", textTransform: "uppercase", letterSpacing: "1px" }}>Pack Size / Option</span>
+                  <div style={{ marginTop: "0.5rem", display: "flex", gap: "10px" }}>
+                    <button style={{
+                      padding: "8px 16px",
+                      borderRadius: "8px",
+                      border: "2px solid #10b981",
+                      backgroundColor: "#ecfdf5",
+                      color: "#047857",
+                      fontWeight: "600",
+                      fontSize: "0.85rem",
+                      cursor: "default"
+                    }}>1 UNIT</button>
+                  </div>
+                </div>
+              )}
 
               {/* Cart Actions */}
               <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "1.5rem", marginBottom: "2rem" }}>
