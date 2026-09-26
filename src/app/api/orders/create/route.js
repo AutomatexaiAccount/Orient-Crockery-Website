@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import Razorpay from 'razorpay';
+import { sendWhatsAppMessage } from '@/app/utils/whatsapp';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://rppakudcmvwlkcxjhnfn.supabase.co';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_AUO4h2oUniw9oE4moZm3kw_HHjziI09';
@@ -193,6 +194,23 @@ export async function POST(request) {
       });
       const { error: itemsErr } = await supabaseAdmin.from("order_items").insert(orderItems);
       if (itemsErr) console.warn('Order items insert warning:', itemsErr.message);
+    }
+
+    // --- WHATSAPP INTEGRATION ---
+    // Trigger the WhatsApp order confirmation notification asynchronously!
+    const cleanCustomerPhone = customerDetails.phone ? customerDetails.phone.replace(/\D/g, '') : '';
+    if (cleanCustomerPhone) {
+      // Add country code if missing (assumes India +91 for now)
+      const formattedPhone = cleanCustomerPhone.length === 10 ? `91${cleanCustomerPhone}` : cleanCustomerPhone;
+      
+      const customerFirstName = customerDetails.name ? customerDetails.name.split(' ')[0] : 'Customer';
+      
+      // We don't await this so it doesn't slow down the checkout process for the user
+      sendWhatsAppMessage(formattedPhone, 'order_confirmation_v1', [
+        { type: 'text', text: customerFirstName }, // {{1}} Name
+        { type: 'text', text: orderData.order_number }, // {{2}} Order Number
+        { type: 'text', text: String(finalTotal) } // {{3}} Total Amount
+      ]).catch(err => console.error("Non-blocking WhatsApp Error:", err));
     }
 
     return NextResponse.json({
