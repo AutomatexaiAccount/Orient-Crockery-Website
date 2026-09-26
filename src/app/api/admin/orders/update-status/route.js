@@ -92,9 +92,9 @@ export async function POST(request) {
       
       let templateName = '';
       if (nextStatus === 'Packed') {
-        templateName = deliveryMethod === 'pickup' ? 'pack_self_pickup' : 'pack_delivery';
+        templateName = deliveryMethod === 'pickup' ? 'pack_self_pickup_1' : 'pack_delivery_1';
       } else if (nextStatus === 'Shipped') {
-        templateName = deliveryMethod === 'pickup' ? 'dispatch_self_pickup' : 'dispatch_delivery';
+        templateName = deliveryMethod === 'pickup' ? 'dispatch_self_pickup_1' : 'dispatch_delivery_1';
       }
 
       if (templateName) {
