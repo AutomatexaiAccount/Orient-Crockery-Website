@@ -8,6 +8,7 @@ import LoginModal from "./components/LoginModal";
 import PromoOfferModal from "./components/PromoOfferModal";
 import FloatingCart from "./components/FloatingCart";
 import MobileBottomNav from "./components/MobileBottomNav";
+import FloatingWhatsApp from "./components/FloatingWhatsApp";
 
 export const metadata = {
   title: "Orient Crockeries | Premium Hospitality & Dining Solutions",
@@ -49,6 +50,7 @@ export default function RootLayout({ children }) {
             <Footer />
             <MobileBottomNav />
             <FloatingCart />
+            <FloatingWhatsApp />
           </AppProvider>
         </AuthProvider>
         <Script
