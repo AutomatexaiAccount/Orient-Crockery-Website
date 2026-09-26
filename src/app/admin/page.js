@@ -2594,15 +2594,27 @@ export default function AdminPage() {
                             <td style={{ fontWeight: "600" }}>
                               <div style={{ color: "#0f172a", fontSize: "0.88rem", fontWeight: "700" }}>{order.customerName}</div>
                               {order.customerPhone && order.customerPhone !== 'N/A' ? (
-                                <a 
-                                  href={`tel:${order.customerPhone.replace(/[^0-9+]/g, '')}`} 
-                                  className="phone-call-link"
-                                  title="Click to Call Customer"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <i className="fa-solid fa-phone"></i>
-                                  <span>{order.customerPhone}</span>
-                                </a>
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" }}>
+                                  <a 
+                                    href={`tel:${order.customerPhone.replace(/[^0-9+]/g, '')}`} 
+                                    className="phone-call-link"
+                                    title="Click to Call Customer"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <i className="fa-solid fa-phone"></i>
+                                    <span>{order.customerPhone}</span>
+                                  </a>
+                                  <a
+                                    href={`https://wa.me/${order.customerPhone.replace(/[^0-9]/g, '').length === 10 ? '91' + order.customerPhone.replace(/[^0-9]/g, '') : order.customerPhone.replace(/[^0-9]/g, '')}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{ color: "#25D366", fontSize: "1.1rem" }}
+                                    title="Message on WhatsApp"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <i className="fa-brands fa-whatsapp"></i>
+                                  </a>
+                                </div>
                               ) : (
                                 <span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>No Phone</span>
                               )}

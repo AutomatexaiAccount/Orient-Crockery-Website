@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { sendWhatsAppMessage } from '@/app/utils/whatsapp';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://rppakudcmvwlkcxjhnfn.supabase.co';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_AUO4h2oUniw9oE4moZm3kw_HHjziI09';
@@ -49,7 +50,7 @@ export async function POST(request) {
     let otpGenerated = null;
     let updatedShippingAddress = null;
 
-    let targetQuery = targetClient.from('orders').select('id, shipping_address');
+    let targetQuery = targetClient.from('orders').select('id, order_number, shipping_address, guest_phone');
     if (docId) {
       targetQuery = targetQuery.eq('id', docId);
     } else {
@@ -82,6 +83,24 @@ export async function POST(request) {
 
     const { data, error } = await updateQuery.select();
     if (error) throw error;
+
+    // --- WHATSAPP STATUS NOTIFICATIONS ---
+    if (existingOrder && existingOrder.guest_phone) {
+      const cleanPhone = existingOrder.guest_phone.replace(/\D/g, '');
+      const formattedPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+      const deliveryMethod = existingOrder.shipping_address?.delivery_method || 'delivery';
+      
+      let templateName = '';
+      if (nextStatus === 'Packed') {
+        templateName = deliveryMethod === 'pickup' ? 'pack_self_pickup' : 'pack_delivery';
+      } else if (nextStatus === 'Shipped') {
+        templateName = deliveryMethod === 'pickup' ? 'dispatch_self_pickup' : 'dispatch_delivery';
+      }
+
+      if (templateName) {
+        sendWhatsAppMessage(formattedPhone, templateName, []).catch(e => console.error("WhatsApp Status Notification Error:", e));
+      }
+    }
 
     // Optional: Trigger Google Sheets Webhook Update (fire and forget)
     try {
