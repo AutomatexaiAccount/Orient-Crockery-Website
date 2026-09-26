@@ -98,7 +98,13 @@ export async function POST(request) {
       }
 
       if (templateName) {
-        sendWhatsAppMessage(formattedPhone, templateName, []).catch(e => console.error("WhatsApp Status Notification Error:", e));
+        const customerFirstName = existingOrder.shipping_address?.name ? existingOrder.shipping_address.name.split(' ')[0] : 'Customer';
+        const orderNum = existingOrder.order_number || docId;
+        
+        sendWhatsAppMessage(formattedPhone, templateName, [
+          { type: 'text', text: customerFirstName },
+          { type: 'text', text: orderNum }
+        ]).catch(e => console.error("WhatsApp Status Notification Error:", e));
       }
     }
 
