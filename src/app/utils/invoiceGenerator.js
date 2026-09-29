@@ -1,12 +1,12 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import html2canvas from 'html2canvas';
 
 function numberToWords(num) {
-  const a = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
-  const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-  const integerPart = Math.floor(num || 0);
-  const decimalPart = Math.round(((num || 0) - integerPart) * 100);
-  
+  var a = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+    'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+  var b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+  var integerPart = Math.floor(num || 0);
+  var decimalPart = Math.round(((num || 0) - integerPart) * 100);
+
   function convert(n) {
     if (n < 20) return a[n];
     if (n < 100) return b[Math.floor(n / 10)] + (n % 10 ? ' ' + a[n % 10] : '');
@@ -16,342 +16,283 @@ function numberToWords(num) {
     return convert(Math.floor(n / 10000000)) + ' Crore' + (n % 10000000 ? ' ' + convert(n % 10000000) : '');
   }
 
-  let word = 'Rupees ' + (convert(integerPart) || 'Zero');
-  if (decimalPart > 0) {
-    word += ' and ' + convert(decimalPart) + ' Paise';
-  }
+  var word = 'Rupees ' + (convert(integerPart) || 'Zero');
+  if (decimalPart > 0) word += ' and ' + convert(decimalPart) + ' Paise';
   return word + ' Only';
 }
 
-export const generateInvoicePDF = (order) => {
-  if (!order) return;
-  const doc = new jsPDF();
-  
-  // Brand Header Accent Bar
-  doc.setFillColor(30, 58, 138); // Deep Navy #1e3a8a
-  doc.rect(0, 0, 210, 5, "F");
+// ─── Normalize order fields from ALL callers ────────────────────────────────
+function normalizeOrder(order) {
+  var rawItems = order.items || order.order_items || order.cart || [];
+  if (!rawItems || rawItems.length === 0) rawItems = [];
 
-  // --- TOP SUB-BANNER ---
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(120, 120, 120);
-  doc.text("Computer-generated Tax Invoice • Orient Crockery Official Receipt", 14, 12);
-  doc.text("Page 1 of 1", 196, 12, { align: "right" });
-
-  // --- BRAND & INVOICE TITLE HEADER ---
-  // Left: Orient Crockery Brand Title
-  doc.setFontSize(20);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(30, 58, 138);
-  doc.text("ORIENT CROCKERIES", 14, 22);
-
-  doc.setFontSize(8.5);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(100, 116, 139);
-  doc.text("Premium Crockery, Glassware & Kitchenware", 14, 27);
-
-  // Right: Document Badge
-  doc.setFontSize(16);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(30, 41, 59);
-  doc.text("TAX INVOICE", 196, 22, { align: "right" });
-
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(16, 185, 129); // Emerald badge
-  doc.text("Original for Recipient", 196, 27, { align: "right" });
-
-  // Divider Line
-  doc.setDrawColor(226, 232, 240);
-  doc.line(14, 31, 196, 31);
-
-  // --- STORE DETAILS & INVOICE META GRID ---
-  // Left Column: Store Details
-  doc.setFontSize(10.5);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(30, 41, 59);
-  doc.text("ORIENT CROCKERIES", 14, 38);
-
-  doc.setFontSize(8.5);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(71, 85, 105);
-  doc.text("22, Industrial Area, Patel Nagar, Geejgarh Vihar Colony", 14, 43);
-  doc.text("Bais Godam, Jaipur, Rajasthan – 302006", 14, 47);
-  doc.text("GSTIN: 08AAAAA0000A1Z5  |  PAN: AAAAA0000A", 14, 51);
-  doc.text("Phone: +91-93145 00229  |  Email: sales@orientcrockery.in", 14, 55);
-
-  // Right Box: Meta Box (Invoice No, Date, Payment Mode)
-  doc.setFillColor(248, 250, 252);
-  doc.setDrawColor(226, 232, 240);
-  doc.roundedRect(125, 34, 71, 24, 2, 2, "FD");
-
-  const orderNum = order.order_number || order.id || order.orderId || "INV/26-27/00101";
-  const orderDate = new Date(order.created_at || order.date || Date.now()).toLocaleDateString("en-IN", {
-    day: "2-digit", month: "short", year: "numeric"
+  var items = rawItems.map(function(i) {
+    return {
+      name:  i.name || i.title || i.product_name || (i.products && i.products.name) || 'Crockery Item',
+      qty:   i.qty  || i.quantity || 1,
+      price: i.price || i.selling_price || i.mrp || 0,
+      mrp:   i.mrp || i.price || 0,
+      gst:   (i.gst !== undefined && i.gst !== null && i.gst !== '') ? parseFloat(i.gst) : 0,
+      hsn:   i.hsn || '',
+      sku:   i.sku || '',
+      id:    i.id || i.product_id || ''
+    };
   });
 
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(71, 85, 105);
-  doc.text("Invoice No.:", 129, 40);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(30, 41, 59);
-  doc.text(String(orderNum), 160, 40);
-
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(71, 85, 105);
-  doc.text("Invoice Date:", 129, 45);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(30, 41, 59);
-  doc.text(String(orderDate), 160, 45);
-
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(71, 85, 105);
-  doc.text("Place of Supply:", 129, 50);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(30, 41, 59);
-  doc.text("Rajasthan (08)", 160, 50);
-
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(71, 85, 105);
-  doc.text("Payment Mode:", 129, 55);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(30, 41, 59);
-  doc.text(String(order.payment_mode || order.paymentMode || "UPI Online"), 160, 55);
-
-  // --- BILLED TO & SALES COUNTER GRID ---
-  doc.line(14, 61, 196, 61);
-
-  // Box 1: Billed To (Left)
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(30, 58, 138);
-  doc.text("BILLED TO", 14, 67);
-
-  const custName = order.customerName || order.customer_name || (order.guest_email ? order.guest_email.split('@')[0] : "Retail Customer");
-  const custPhone = order.customerPhone || order.guest_phone || "N/A";
-  const rawAddr = order.shippingAddress || (typeof order.shipping_address === 'string' ? order.shipping_address : (order.shipping_address?.raw_text || "Jaipur, Rajasthan"));
-
-  doc.setFontSize(8.5);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(30, 41, 59);
-  doc.text(String(custName), 14, 72);
-
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(71, 85, 105);
-  doc.text(`Mobile: ${custPhone}`, 14, 76);
-  doc.text(`GSTIN: Unregistered (Consumer)`, 14, 80);
-  
-  // Multiline address wrapping
-  const splitAddr = doc.splitTextToSize(`Address: ${rawAddr}`, 90);
-  doc.text(splitAddr, 14, 84);
-
-  // Box 2: Store / Salesperson (Right)
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(30, 58, 138);
-  doc.text("STORE & SALES INFO", 125, 67);
-
-  doc.setFontSize(8.5);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(30, 41, 59);
-  doc.text("Orient Crockery – Main Store", 125, 72);
-
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(71, 85, 105);
-  doc.text("Salesperson: Online Store Counter 01", 125, 76);
-  doc.text("Customer Type: Retail Consumer", 125, 80);
-  doc.text("Channel: Orient Web Store", 125, 84);
-
-  // --- ITEMS TABLE ---
-  const items = order.items && order.items.length > 0 ? order.items : (order.cart || [
-    { name: "Orient Premium Crockery Item", qty: 1, price: order.total || order.final_total || 1000 }
-  ]);
-
-  const tableColumn = ["S.No.", "Item / Description", "HSN", "Qty", "Unit", "MRP (Rs.)", "Rate (Rs.)", "Disc. (Rs.)", "Taxable (Rs.)"];
-  const tableRows = [];
-
-  let totalMRP = 0;
-  let totalTaxable = 0; // This is actually the gross total inclusive of tax in the original logic
-  let totalGstAmount = 0;
-
-  items.forEach((item, index) => {
-    const name = item.name || item.title || item.product_name || "Crockery Item";
-    const qty = item.qty || item.quantity || 1;
-    const price = item.price || item.mrp || 0;
-    const mrp = Math.round(price * 1.15);
-    const disc = (mrp - price) * qty;
-    const taxable = price * qty;
-
-    const itemGstPct = (item.gst !== undefined && item.gst !== null && item.gst !== '') ? parseFloat(item.gst) : 18;
-    const itemGst = taxable * (itemGstPct / 100);
-
-    totalMRP += mrp * qty;
-    totalTaxable += taxable;
-    totalGstAmount += itemGst;
-
-    tableRows.push([
-      (index + 1).toString(),
-      name.substring(0, 35) + (name.length > 35 ? "..." : ""),
-      item.hsn || "6912",
-      qty.toString(),
-      "Nos",
-      mrp.toFixed(2),
-      price.toFixed(2),
-      disc > 0 ? disc.toFixed(2) : "–",
-      taxable.toFixed(2)
-    ]);
-  });
-
-  autoTable(doc, {
-    startY: 93,
-    head: [tableColumn],
-    body: tableRows,
-    theme: 'grid',
-    headStyles: { 
-      fillColor: [30, 58, 138], 
-      textColor: [255, 255, 255],
-      fontSize: 8,
-      fontStyle: 'bold',
-      halign: 'center'
-    },
-    columnStyles: {
-      0: { halign: 'center', cellWidth: 12 },
-      1: { cellWidth: 55 },
-      2: { halign: 'center', cellWidth: 16 },
-      3: { halign: 'center', cellWidth: 12 },
-      4: { halign: 'center', cellWidth: 14 },
-      5: { halign: 'right', cellWidth: 20 },
-      6: { halign: 'right', cellWidth: 20 },
-      7: { halign: 'right', cellWidth: 18 },
-      8: { halign: 'right', cellWidth: 22 }
-    },
-    styles: { 
-      fontSize: 8, 
-      cellPadding: 3, 
-      textColor: [30, 41, 59],
-      lineColor: [226, 232, 240]
-    }
-  });
-
-  const finalY = doc.lastAutoTable.finalY || 130;
-
-  // --- GST & TOTALS SUMMARY (SIDE-BY-SIDE) ---
-  const gstTotal = Math.round(totalGstAmount);
-  const cgst = Math.round(gstTotal / 2);
-  const sgst = Math.round(gstTotal / 2);
-  const shipping = Number(order.shipping || order.shipping_charge || 0);
-  const discount = Number(order.discount || order.discount_amount || 0);
-  // Grand total = base + tax + shipping - discount (always re-derive from items, never trust stored value blindly)
-  const grandTotal = totalTaxable + gstTotal + shipping - discount;
-
-  // Left Side: GST Breakdown Box
-  doc.setFillColor(248, 250, 252);
-  const boxHeight = 12 + (items.length * 6) + 10;
-  doc.roundedRect(14, finalY + 5, 100, boxHeight, 1, 1, "FD");
-
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(30, 58, 138);
-  doc.text("GST BREAKDOWN PER ITEM", 18, finalY + 11);
-
-  doc.setFontSize(7.5);
-  let currentY = finalY + 17;
-  items.forEach(item => {
-    const rate = (item.gst !== undefined && item.gst !== null && item.gst !== '') ? parseFloat(item.gst) : 18;
-    const name = item.name || item.title || "Item";
-    const shortName = name.substring(0, 20) + (name.length > 20 ? "..." : "");
-    const taxable = (item.price || item.mrp || 0) * (item.qty || item.quantity || 1);
-    const tax = taxable * (rate / 100);
-    
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(71, 85, 105);
-    doc.text(`${rate}% GST on ${shortName}`, 18, currentY);
-    doc.text(`+ Rs. ${tax.toFixed(2)}`, 85, currentY);
-    currentY += 6;
-  });
-
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(30, 41, 59);
-  doc.text(`Total Tax:`, 18, currentY);
-  doc.text(`Rs. ${gstTotal.toFixed(2)}`, 85, currentY);
-
-  // Right Side: Amount Summary Box
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(71, 85, 105);
-  
-  doc.text("Gross Taxable Value:", 125, finalY + 10);
-  doc.text(`Rs. ${totalTaxable.toFixed(2)}`, 196, finalY + 10, { align: "right" });
-
-  doc.text("Total Tax:", 125, finalY + 15);
-  doc.text(`Rs. ${gstTotal.toFixed(2)}`, 196, finalY + 15, { align: "right" });
-
-  if (shipping > 0) {
-    doc.text("Shipping Charge:", 125, finalY + 20);
-    doc.text(`Rs. ${shipping.toFixed(2)}`, 196, finalY + 20, { align: "right" });
+  var addrRaw = order.shippingAddress || order.shipping_address;
+  var addrStr = '';
+  if (typeof addrRaw === 'string') {
+    addrStr = addrRaw;
+  } else if (addrRaw && addrRaw.raw_text) {
+    addrStr = addrRaw.raw_text;
+  } else if (addrRaw) {
+    addrStr = [addrRaw.street, addrRaw.area, addrRaw.city, addrRaw.state].filter(Boolean).join(', ');
+  } else {
+    addrStr = 'Jaipur, Rajasthan';
   }
 
-  // Grand Total Highlight Bar
-  doc.setFillColor(30, 58, 138);
-  doc.roundedRect(122, finalY + 24, 74, 9, 1, 1, "F");
+  return {
+    orderNum:      order.order_number || order.id || 'RECEIPT',
+    date:          order.created_at   || order.date || new Date().toISOString(),
+    custName:      order.customerName || order.customer_name || 'Retail Customer',
+    custPhone:     order.customerPhone || order.guest_phone || 'N/A',
+    addrStr:       addrStr,
+    items:         items,
+    shipping:      Number(order.shipping || order.shipping_charge || 0),
+    discount:      Number(order.discount || order.discount_amount || 0),
+    paymentMode:   order.payment_mode || order.paymentMode || 'UPI Online',
+    // Stored totals from DB — used as fallback when items can't be loaded
+    storedTotal:   Number(order.total || order.final_total || 0),
+    storedSubtotal:Number(order.subtotal || order.total_mrp || 0),
+    storedTax:     Number(order.tax_amount || order.gstAmount || 0)
+  };
+}
 
-  doc.setFontSize(9.5);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(255, 255, 255);
-  doc.text("Grand Total:", 126, finalY + 30);
-  doc.text(`Rs. ${grandTotal.toFixed(2)}`, 192, finalY + 30, { align: "right" });
+export var generateInvoicePDF = async function(order) {
+  if (!order) return;
 
-  // --- AMOUNT IN WORDS ---
-  const amountInWordsStr = numberToWords(grandTotal);
-  doc.setFontSize(8.5);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(30, 58, 138);
-  doc.text("Amount in Words:", 14, finalY + 39);
+  var o = normalizeOrder(order);
 
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(30, 41, 59);
-  doc.text(amountInWordsStr, 44, finalY + 39);
+  // ── Compute totals from items ──────────────────────────────────────────────
+  var totalTaxable = 0;
+  var totalGst     = 0;
+  var gstBreakdownMap = {};
+  var hasItems = o.items.length > 0;
 
-  // --- TERMS & CONDITIONS & SIGNATURE GRID ---
-  doc.setDrawColor(226, 232, 240);
-  doc.line(14, finalY + 43, 196, finalY + 43);
+  var itemsTableRows = '';
 
-  // Left Column: Terms
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(30, 58, 138);
-  doc.text("Terms & Conditions:", 14, finalY + 48);
+  if (hasItems) {
+    itemsTableRows = o.items.map(function(item, idx) {
+      var taxable = item.price * item.qty;
+      var gstAmt  = taxable * (item.gst / 100);
+      totalTaxable += taxable;
+      totalGst     += gstAmt;
 
-  doc.setFontSize(7);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(100, 116, 139);
-  doc.text("1. Goods once sold are subject to store return/exchange policy.", 14, 268);
-  doc.text("2. Please check crockery items carefully before leaving store.", 14, 272);
-  doc.text("3. Warranty, wherever applicable, is as per manufacturer terms.", 14, 276);
-  doc.text("4. This is a computer-generated tax invoice.", 14, 280);
+      var rateKey = String(item.gst);
+      if (!gstBreakdownMap[rateKey]) {
+        gstBreakdownMap[rateKey] = { rate: item.gst, taxableSum: 0, gstSum: 0 };
+      }
+      gstBreakdownMap[rateKey].taxableSum += taxable;
+      gstBreakdownMap[rateKey].gstSum     += gstAmt;
 
-  // Right Column: Authorised Signatory Box
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(30, 41, 59);
-  doc.text("For ORIENT CROCKERIES", 196, 268, { align: "right" });
+      return '<tr style="border-bottom:1px solid #e2e8f0;">'
+        + '<td style="padding:10px 8px;text-align:center;font-size:12px;color:#64748b;">' + (idx + 1) + '</td>'
+        + '<td style="padding:10px 8px;font-size:12px;color:#1e293b;font-weight:600;word-wrap:break-word;max-width:220px;">' + item.name + '</td>'
+        + '<td style="padding:10px 8px;text-align:center;font-size:12px;color:#64748b;">' + (item.hsn || '&#8211;') + '</td>'
+        + '<td style="padding:10px 8px;text-align:center;font-size:12px;color:#1e293b;">' + item.qty + '</td>'
+        + '<td style="padding:10px 8px;text-align:right;font-size:12px;color:#1e293b;">&#8377;' + item.price.toFixed(2) + '</td>'
+        + '<td style="padding:10px 8px;text-align:center;font-size:12px;color:#64748b;">' + item.gst + '%</td>'
+        + '<td style="padding:10px 8px;text-align:right;font-size:12px;color:#64748b;">&#8377;' + gstAmt.toFixed(2) + '</td>'
+        + '<td style="padding:10px 8px;text-align:right;font-size:12px;color:#1e293b;font-weight:600;">&#8377;' + (taxable + gstAmt).toFixed(2) + '</td>'
+        + '</tr>';
+    }).join('');
+  }
 
-  doc.setFontSize(7.5);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(148, 163, 184);
-  doc.text("Authorised Signatory", 196, 280, { align: "right" });
+  // ── FALLBACK: If no items but stored totals exist, use them ────────────────
+  var gstRounded, grandTotal;
+  if (hasItems) {
+    gstRounded = Math.round(totalGst * 100) / 100;
+    grandTotal = totalTaxable + gstRounded + o.shipping - o.discount;
+  } else {
+    // Use database-stored values — always recompute grand total since
+    // older orders may have stored final_total without GST
+    totalTaxable = o.storedSubtotal;
+    gstRounded   = o.storedTax;
+    totalGst     = o.storedTax;
+    grandTotal   = totalTaxable + gstRounded + o.shipping - o.discount;
+  }
 
-  // --- FOOTER POWERED BY BAR ---
-  doc.setFillColor(241, 245, 249);
-  doc.rect(0, 285, 210, 12, "F");
+  // ── Build GST breakdown HTML ───────────────────────────────────────────────
+  var gstBreakdownHtml = '';
+  if (hasItems) {
+    var rates = Object.keys(gstBreakdownMap).sort(function(a, b) { return parseFloat(a) - parseFloat(b); });
+    rates.forEach(function(rateKey) {
+      var entry = gstBreakdownMap[rateKey];
+      var label = entry.rate === 0
+        ? 'GST Exempt'
+        : entry.rate + '% GST (CGST ' + (entry.rate / 2) + '% + SGST ' + (entry.rate / 2) + '%)';
+      gstBreakdownHtml += '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;">'
+        + '<span style="color:#475569;">' + label + '</span>'
+        + '<span style="color:#0f172a;font-weight:600;">'
+        + (entry.rate === 0 ? '&#8377;0.00' : '+ &#8377;' + entry.gstSum.toFixed(2))
+        + '</span></div>';
+    });
+  } else if (gstRounded > 0) {
+    gstBreakdownHtml = '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;">'
+      + '<span style="color:#475569;">GST (from order record)</span>'
+      + '<span style="color:#0f172a;font-weight:600;">+ &#8377;' + gstRounded.toFixed(2) + '</span></div>';
+  } else {
+    gstBreakdownHtml = '<div style="font-size:12px;color:#94a3b8;">No tax breakdown available</div>';
+  }
 
-  doc.setFontSize(7.5);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(71, 85, 105);
-  doc.text("Powered by Orient Crockeries • Premium Tableware & Kitchenware", 105, 291, { align: "center" });
+  // ── Conditional rows ───────────────────────────────────────────────────────
+  var shippingRow = o.shipping > 0
+    ? '<div style="display:flex;justify-content:space-between;font-size:13px;color:#475569;margin-bottom:8px;"><span>Shipping Fee</span><span>+ &#8377;' + o.shipping.toFixed(2) + '</span></div>'
+    : '';
+  var discountRow = o.discount > 0
+    ? '<div style="display:flex;justify-content:space-between;font-size:13px;color:#10b981;margin-bottom:8px;"><span>Discount Applied</span><span>- &#8377;' + o.discount.toFixed(2) + '</span></div>'
+    : '';
 
-  // Save the PDF
-  const filename = `Invoice_Orient_${order.id || order.order_number || "X"}.pdf`;
-  doc.save(filename);
+  var orderDateStr = new Date(o.date).toLocaleDateString('en-IN', {
+    day: '2-digit', month: 'short', year: 'numeric'
+  });
+
+  // ── Items table or "no items" message ──────────────────────────────────────
+  var itemsSection = '';
+  if (hasItems) {
+    itemsSection = '<table style="width:100%;border-collapse:collapse;margin-bottom:20px;">'
+      + '<thead><tr style="background:#1e3a8a;">'
+      + '<th style="padding:10px 8px;color:white;font-size:11px;text-align:center;font-weight:600;">S.No</th>'
+      + '<th style="padding:10px 8px;color:white;font-size:11px;text-align:left;font-weight:600;">Item / Description</th>'
+      + '<th style="padding:10px 8px;color:white;font-size:11px;text-align:center;font-weight:600;">HSN</th>'
+      + '<th style="padding:10px 8px;color:white;font-size:11px;text-align:center;font-weight:600;">Qty</th>'
+      + '<th style="padding:10px 8px;color:white;font-size:11px;text-align:right;font-weight:600;">Rate (&#8377;)</th>'
+      + '<th style="padding:10px 8px;color:white;font-size:11px;text-align:center;font-weight:600;">GST</th>'
+      + '<th style="padding:10px 8px;color:white;font-size:11px;text-align:right;font-weight:600;">Tax (&#8377;)</th>'
+      + '<th style="padding:10px 8px;color:white;font-size:11px;text-align:right;font-weight:600;">Total (&#8377;)</th>'
+      + '</tr></thead><tbody>' + itemsTableRows + '</tbody></table>';
+  } else {
+    itemsSection = '<div style="padding:20px;background:#fffbeb;border:1px solid #fbbf24;border-radius:8px;margin-bottom:20px;text-align:center;font-size:13px;color:#92400e;">'
+      + '<strong>Item details not available for this order.</strong><br/>'
+      + 'Totals shown below are from the order record.'
+      + '</div>';
+  }
+
+  // ── Build full HTML ────────────────────────────────────────────────────────
+  var html = ''
+    + '<div style="height:10px;background:linear-gradient(90deg,#1e3a8a,#2563eb);width:100%;"></div>'
+    + '<div style="padding:35px 40px;background-color:#ffffff;">'
+
+    // HEADER
+    + '<div style="display:flex;justify-content:space-between;margin-bottom:25px;">'
+    + '<div>'
+    + '<h1 style="margin:0;color:#1e3a8a;font-size:26px;font-weight:800;letter-spacing:-0.5px;">ORIENT CROCKERIES</h1>'
+    + '<p style="margin:4px 0 0 0;color:#64748b;font-size:12px;">Premium Crockery, Glassware &amp; Kitchenware</p>'
+    + '</div>'
+    + '<div style="text-align:right;">'
+    + '<div style="font-size:20px;font-weight:800;color:#0f172a;">TAX RECEIPT</div>'
+    + '<div style="color:#10b981;font-size:11px;font-weight:700;margin-top:2px;">Original for Recipient</div>'
+    + '</div>'
+    + '</div>'
+
+    // STORE + META
+    + '<div style="display:flex;justify-content:space-between;padding:15px 0;border-top:2px solid #e2e8f0;border-bottom:2px solid #e2e8f0;margin-bottom:20px;">'
+    + '<div style="color:#475569;font-size:11px;line-height:1.7;">'
+    + '<strong style="color:#1e293b;">ORIENT CROCKERIES</strong><br/>'
+    + '22, Industrial Area, Patel Nagar, Geejgarh Vihar Colony<br/>'
+    + 'Bais Godam, Jaipur, Rajasthan &#8211; 302006<br/>'
+    + 'GSTIN: 08AAAAA0000A1Z5 &nbsp;|&nbsp; PAN: AAAAA0000A<br/>'
+    + 'Phone: +91-93145 00229 &nbsp;|&nbsp; Email: sales@orientcrockery.in'
+    + '</div>'
+    + '<div style="text-align:right;font-size:11px;line-height:1.7;">'
+    + '<div style="margin-bottom:4px;"><span style="color:#64748b;">Receipt No: </span><strong style="color:#1e293b;">' + o.orderNum + '</strong></div>'
+    + '<div style="margin-bottom:4px;"><span style="color:#64748b;">Date: </span><strong style="color:#1e293b;">' + orderDateStr + '</strong></div>'
+    + '<div><span style="color:#64748b;">Payment: </span><strong style="color:#1e293b;">' + o.paymentMode + '</strong></div>'
+    + '</div>'
+    + '</div>'
+
+    // BILLED TO + STORE INFO
+    + '<div style="display:flex;gap:30px;margin-bottom:25px;">'
+    + '<div style="flex:1;border-left:3px solid #1e3a8a;padding-left:12px;">'
+    + '<div style="color:#1e3a8a;font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:6px;">Billed To</div>'
+    + '<div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:3px;">' + o.custName + '</div>'
+    + '<div style="color:#64748b;font-size:11px;line-height:1.6;">Mobile: ' + o.custPhone + '<br/>Address: ' + o.addrStr + '<br/>GSTIN: Unregistered (Consumer)</div>'
+    + '</div>'
+    + '<div style="flex:1;border-left:3px solid #1e3a8a;padding-left:12px;">'
+    + '<div style="color:#1e3a8a;font-size:11px;font-weight:700;text-transform:uppercase;margin-bottom:6px;">Store &amp; Sales Info</div>'
+    + '<div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:3px;">Orient Crockery &#8211; Main Store</div>'
+    + '<div style="color:#64748b;font-size:11px;line-height:1.6;">Salesperson: Online Store Counter 01<br/>Customer Type: Retail Consumer<br/>Channel: Orient Web Store</div>'
+    + '</div>'
+    + '</div>'
+
+    // ITEMS TABLE or FALLBACK MESSAGE
+    + itemsSection
+
+    // GST BREAKDOWN + TOTALS
+    + '<div style="display:flex;gap:25px;margin-bottom:25px;">'
+    + '<div style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:15px;">'
+    + '<div style="font-size:12px;font-weight:700;color:#1e3a8a;margin-bottom:10px;text-transform:uppercase;">GST Breakdown</div>'
+    + gstBreakdownHtml
+    + '<div style="border-top:1px solid #cbd5e1;padding-top:8px;margin-top:8px;display:flex;justify-content:space-between;font-size:12px;font-weight:700;"><span style="color:#1e293b;">Total Tax</span><span style="color:#1e293b;">&#8377;' + gstRounded.toFixed(2) + '</span></div>'
+    + '</div>'
+    + '<div style="flex:1;">'
+    + '<div style="display:flex;justify-content:space-between;font-size:13px;color:#475569;margin-bottom:8px;"><span>Taxable Value</span><span style="font-weight:600;color:#0f172a;">&#8377;' + totalTaxable.toFixed(2) + '</span></div>'
+    + '<div style="display:flex;justify-content:space-between;font-size:13px;color:#475569;margin-bottom:8px;"><span>Total Tax</span><span>+ &#8377;' + gstRounded.toFixed(2) + '</span></div>'
+    + shippingRow
+    + discountRow
+    + '<div style="background:#1e3a8a;color:white;padding:12px 15px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;margin-top:12px;">'
+    + '<span style="font-size:14px;font-weight:600;">Grand Total</span>'
+    + '<span style="font-size:18px;font-weight:700;">&#8377;' + grandTotal.toFixed(2) + '</span>'
+    + '</div>'
+    + '</div>'
+    + '</div>'
+
+    // AMOUNT IN WORDS
+    + '<div style="padding:15px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;margin-bottom:20px;">'
+    + '<span style="font-size:12px;color:#1e3a8a;font-weight:700;">Amount in Words: </span>'
+    + '<span style="font-size:12px;color:#0f172a;font-weight:600;">' + numberToWords(grandTotal) + '</span>'
+    + '</div>'
+
+    // TERMS + SIGNATORY
+    + '<div style="display:flex;justify-content:space-between;padding-top:15px;border-top:1px solid #e2e8f0;">'
+    + '<div style="font-size:10px;color:#94a3b8;line-height:1.6;">'
+    + '1. Goods once sold are subject to store return/exchange policy.<br/>'
+    + '2. Please check items carefully before leaving store.<br/>'
+    + '3. This is a computer-generated tax receipt.'
+    + '</div>'
+    + '<div style="text-align:right;">'
+    + '<div style="font-size:11px;font-weight:700;color:#1e293b;">For ORIENT CROCKERIES</div>'
+    + '<div style="font-size:10px;color:#94a3b8;margin-top:25px;">Authorised Signatory</div>'
+    + '</div>'
+    + '</div>'
+
+    + '</div>'
+    + '<div style="background:#f1f5f9;padding:8px 0;text-align:center;font-size:10px;color:#64748b;font-weight:600;">Powered by Orient Crockeries &#8226; Premium Tableware &amp; Kitchenware</div>';
+
+  // ── Render to PNG ──────────────────────────────────────────────────────────
+  var container = document.createElement('div');
+  container.style.position       = 'absolute';
+  container.style.left           = '-9999px';
+  container.style.top            = '-9999px';
+  container.style.width          = '800px';
+  container.style.backgroundColor = '#ffffff';
+  container.style.fontFamily      = 'Arial, Helvetica, sans-serif';
+  container.innerHTML = html;
+  document.body.appendChild(container);
+
+  try {
+    var canvas = await html2canvas(container, {
+      scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false
+    });
+    var dataUrl = canvas.toDataURL('image/png');
+    var link    = document.createElement('a');
+    link.download = 'Invoice_Orient_' + o.orderNum + '.png';
+    link.href     = dataUrl;
+    link.click();
+  } catch (err) {
+    console.error('Error generating image receipt:', err);
+    alert('Failed to generate receipt. Please try again.');
+  } finally {
+    document.body.removeChild(container);
+  }
 };

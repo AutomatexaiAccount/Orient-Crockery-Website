@@ -73,7 +73,7 @@ export default function CheckoutPage() {
     // Recalculate grand total including gift wrapping if selected
     const activeGiftCharge = giftPackaging === "gift" ? giftWrapFee : 0;
     const cartSubtotal = cart.reduce((sum, item) => {
-      const rate = (item.gst !== undefined && item.gst !== null && item.gst !== '') ? parseFloat(item.gst) : 18;
+      const rate = (item.gst !== undefined && item.gst !== null && item.gst !== '') ? parseFloat(item.gst) : 0;
       const itemTotalExclusive = item.price * item.quantity;
       const taxAmt = itemTotalExclusive * (rate / 100);
       return sum + itemTotalExclusive + taxAmt;
@@ -103,7 +103,7 @@ export default function CheckoutPage() {
   
   // Tax calculations
   const taxItems = cart.map(item => {
-    const rate = (item.gst !== undefined && item.gst !== null && item.gst !== '') ? parseFloat(item.gst) : 18;
+    const rate = (item.gst !== undefined && item.gst !== null && item.gst !== '') ? parseFloat(item.gst) : 0;
     const itemTotalExclusive = item.price * item.quantity;
     const taxAmt = itemTotalExclusive * (rate / 100);
     const itemTotalInclusive = itemTotalExclusive + taxAmt;
@@ -361,6 +361,8 @@ export default function CheckoutPage() {
       shipping: backendOrderData.shipping_charge || shippingFee,
       discount: backendOrderData.discount_amount || promoDiscount,
       total: backendOrderData.final_total || orderTotal,
+      tax_amount: backendOrderData.tax_amount || totalGST,
+      payment_mode: method === "COD" ? "COD" : "UPI",
       status: "Pending",
       courierStatus: "In Warehouse",
       paymentStatus: method === "COD" ? "Pending (COD)" : "Paid",
@@ -379,7 +381,9 @@ export default function CheckoutPage() {
       shipping: shippingFee,
       discount: promoDiscount,
       total: orderTotal,
+      tax_amount: totalGST,
       gstAmount: totalGST,
+      payment_mode: method === "COD" ? "COD" : "UPI Online",
       status: "Pending",
       courierStatus: "In Warehouse",
       paymentStatus: method === "COD" ? "Pending (COD)" : "Paid",

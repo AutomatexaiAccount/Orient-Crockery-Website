@@ -50,7 +50,7 @@ export async function POST(request) {
     
     items.forEach(item => {
       const itemBase = (item.price || 0) * (item.qty || item.quantity || 1);
-      const rate = (item.gst !== undefined && item.gst !== null && item.gst !== '') ? parseFloat(item.gst) : 18;
+      const rate = (item.gst !== undefined && item.gst !== null && item.gst !== '') ? parseFloat(item.gst) : 0;
       const itemGst = itemBase * (rate / 100);
       subtotal += itemBase;
       totalGST += itemGst;
@@ -77,7 +77,7 @@ export async function POST(request) {
     const giftPackaging = customerDetails.giftPackaging || customerDetails.shippingAddress?.gift_packaging || 'standard';
     const giftWrapFee = giftPackaging === 'gift' ? (parseFloat(body.giftWrapFee || customerDetails.giftWrapFee || 50) || 50) : 0;
 
-    const finalTotal = subtotal + (shippingFee || 0) + giftWrapFee - discountAmount;
+    const finalTotal = subtotal + totalGST + (shippingFee || 0) + giftWrapFee - discountAmount;
     const orderId = "ORD-" + Math.floor(Math.random() * 900000 + 100000);
 
     // 3. Create Razorpay Order securely
@@ -178,22 +178,41 @@ export async function POST(request) {
 
     if (items && items.length > 0 && orderData) {
       const orderItems = items.map(item => {
-        const rate = (item.gst !== undefined && item.gst !== null && item.gst !== '') ? parseFloat(item.gst) : 18;
-        const itemBase = (item.price || 0) * (item.qty || item.quantity || 1);
-        const itemGst = itemBase * (rate / 100);
+        const rate = (item.gst !== undefined && item.gst !== null && item.gst !== '') ? parseFloat(item.gst) : 0;
+        const qty = item.qty || item.quantity || 1;
+        const unitPrice = item.price || 0;
+        const taxableValue = unitPrice * qty;
+        const itemGst = taxableValue * (rate / 100);
         return {
           order_id: orderData.id,
-          product_id: String(item.id || "P101"),
+          product_id: String(item.id || ''),
           product_name: item.name || item.title || 'Orient Tableware',
-          quantity: item.qty || item.quantity || 1,
-          mrp: item.price || 0,
-          selling_price: item.price || 0,
-          tax_amount: itemGst,
-          gst: rate
+          quantity: qty,
+          mrp: item.mrp || unitPrice,
+          selling_price: unitPrice,
+          gst: rate,
+          tax_amount: itemGst
         };
       });
-      const { error: itemsErr } = await supabaseAdmin.from("order_items").insert(orderItems);
-      if (itemsErr) console.warn('Order items insert warning:', itemsErr.message);
+
+      // Try inserting order items — if new columns don't exist yet, retry with core fields only
+      let { error: itemsErr } = await supabaseAdmin.from("order_items").insert(orderItems);
+      if (itemsErr) {
+        console.warn('Order items insert attempt 1 failed:', itemsErr.message);
+        // Retry with only the original core columns
+        const coreItems = orderItems.map(oi => ({
+          order_id: oi.order_id,
+          product_id: oi.product_id,
+          product_name: oi.product_name,
+          quantity: oi.quantity,
+          mrp: oi.mrp,
+          selling_price: oi.selling_price,
+          gst: oi.gst,
+          tax_amount: oi.tax_amount
+        }));
+        const { error: retryErr } = await supabaseAdmin.from("order_items").insert(coreItems);
+        if (retryErr) console.warn('Order items insert attempt 2 failed:', retryErr.message);
+      }
     }
 
     // --- WHATSAPP INTEGRATION ---

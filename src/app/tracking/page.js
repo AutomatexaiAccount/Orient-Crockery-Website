@@ -27,17 +27,23 @@ function TrackingContent() {
       : order.shipping_address,
     items: (orderItems && orderItems.length > 0) ? orderItems.map(it => ({
       id: it.product_id,
-      name: it.product_name || `Tableware Item #${it.product_id}`,
+      name: it.product_name || 'Tableware Item',
       price: parseFloat(it.selling_price || it.mrp) || 0,
       quantity: it.quantity || 1,
-      gst: (it.gst !== undefined && it.gst !== null && it.gst !== '') ? parseFloat(it.gst) : 18,
+      gst: (it.gst !== undefined && it.gst !== null && it.gst !== '') ? parseFloat(it.gst) : 0,
       mrp: parseFloat(it.mrp || it.selling_price) || 0,
-      hsn: it.hsn || '6912'
+      hsn: it.hsn || '',
+      sku: it.sku || '',
+      tax_amount: it.tax_amount || 0,
+      taxable_value: it.taxable_value || 0,
+      total_price: it.total_price || 0
     })) : [],
     total: order.final_total || order.total || 0,
     subtotal: order.total_mrp || 0,
     shipping: order.shipping_charge || 0,
     discount: order.discount_amount || 0,
+    tax_amount: order.tax_amount || 0,
+    payment_mode: order.payment_mode || 'UPI Online',
     status: ({'NEW':'Pending','PACKED':'Packed','DISPATCHED':'Shipped','DELIVERED':'Delivered'}[order.order_status] || order.order_status || 'Pending'),
     courierStatus: order.courier_status || 'In Warehouse',
   });

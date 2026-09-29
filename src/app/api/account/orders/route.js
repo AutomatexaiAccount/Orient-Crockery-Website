@@ -44,22 +44,36 @@ export async function GET(request) {
       return NextResponse.json({ success: true, orders: [] });
     }
 
-    // Use admin client to fetch orders and bypass RLS
-    const { data, error } = await supabaseAdmin
+    // Attempt relational query first
+    let { data: ordersData, error: relError } = await supabaseAdmin
       .from('orders')
-      .select(`
-        *,
-        order_items (*)
-      `)
+      .select('*, order_items(*)')
       .or(filterConditions.join(','))
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Error fetching orders from DB:', error);
-      return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    if (relError) {
+      console.warn('Relational fetch failed for account orders, falling back to manual merge.', relError);
+      
+      const { data: simpleOrders, error: ordErr } = await supabaseAdmin
+        .from('orders')
+        .select('*')
+        .or(filterConditions.join(','))
+        .order('created_at', { ascending: false });
+        
+      if (ordErr) {
+        console.error('Error fetching orders from DB:', ordErr);
+        return NextResponse.json({ success: false, message: ordErr.message }, { status: 500 });
+      }
+
+      const { data: simpleItems } = await supabaseAdmin.from('order_items').select('*');
+
+      ordersData = (simpleOrders || []).map(order => {
+        const itemsForOrder = (simpleItems || []).filter(item => item.order_id === order.id);
+        return { ...order, order_items: itemsForOrder };
+      });
     }
 
-    return NextResponse.json({ success: true, orders: data || [] });
+    return NextResponse.json({ success: true, orders: ordersData || [] });
 
   } catch (err) {
     console.error('Server error fetching orders:', err);

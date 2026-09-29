@@ -76,17 +76,23 @@ export default function AccountPage() {
             shippingAddress: typeof ord.shipping_address === 'object' ? (ord.shipping_address?.raw_text || `${ord.shipping_address?.street || ''}, ${ord.shipping_address?.area || ''}`) : ord.shipping_address,
             items: (ord.order_items && ord.order_items.length > 0) ? ord.order_items.map(it => ({
               id: it.product_id,
-              name: it.product_name || `Tableware Item #${it.product_id}`,
+              name: it.product_name || 'Tableware Item',
               price: parseFloat(it.selling_price || it.mrp) || 0,
               quantity: it.quantity || 1,
-              gst: (it.gst !== undefined && it.gst !== null && it.gst !== '') ? parseFloat(it.gst) : 18,
+              gst: (it.gst !== undefined && it.gst !== null && it.gst !== '') ? parseFloat(it.gst) : 0,
               mrp: parseFloat(it.mrp || it.selling_price) || 0,
-              hsn: it.hsn || '6912'
+              hsn: it.hsn || '',
+              sku: it.sku || '',
+              tax_amount: it.tax_amount || 0,
+              taxable_value: it.taxable_value || 0,
+              total_price: it.total_price || 0
             })) : (ord.items || []),
             subtotal: ord.total_mrp || ord.final_total || 0,
             shipping: ord.shipping_charge || 0,
             discount: ord.discount_amount || 0,
             total: ord.final_total || 0,
+            tax_amount: ord.tax_amount || 0,
+            payment_mode: ord.payment_mode || 'UPI Online',
             status: ({'NEW':'Pending','PACKED':'Packed','DISPATCHED':'Shipped','DELIVERED':'Delivered'}[ord.order_status] || ord.order_status || 'Pending'),
             paymentStatus: ord.payment_status || 'Paid',
             delivery_otp: ord.delivery_otp

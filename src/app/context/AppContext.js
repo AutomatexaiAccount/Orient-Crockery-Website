@@ -245,7 +245,7 @@ export function AppProvider({ children }) {
 
   // Get total items and total price of cart
   const cartSubtotal = cart.reduce((sum, item) => {
-    const rate = (item.gst !== undefined && item.gst !== null && item.gst !== '') ? parseFloat(item.gst) : 18;
+    const rate = (item.gst !== undefined && item.gst !== null && item.gst !== '') ? parseFloat(item.gst) : 0;
     const base = item.price * item.quantity;
     const gst = base * (rate / 100);
     return sum + base + gst;
