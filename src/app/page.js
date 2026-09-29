@@ -9,6 +9,7 @@ import { getImageStyle } from "./utils/imageUtils";
 import { supabase } from "../supabase";
 import ProductImageZoomViewer from "./components/ProductImageZoomViewer";
 import ProductVideoEmbed from "./components/ProductVideoEmbed";
+import HeroCarousel from "./components/HeroCarousel";
 
 const getValidImageUrl = (src) => {
   if (!src || typeof src !== 'string') return "/images/acacia_wood_casserole.png";
@@ -93,34 +94,7 @@ export default function Home() {
 
   return (
     <main style={{ marginTop: "60px" }}>
-      {/* Hero Banner Section (Luxury Split Layout) */}
-      <section className="hero-split">
-        <div className="hero-split-text">
-          <p className="hero-subtitle">ORIENT CROCKERIES</p>
-          <h1 className="hero-title">Dining Elevated</h1>
-          <p className="hero-desc">
-            Est. 1994. Curating and crafting the world&apos;s finest dinnerware, professional cookware, and organic acacia woodcraft. For five-star hospitality and exquisite homes.
-          </p>
-          <div className="cta-group">
-            <Link href="/catalog" className="btn btn-primary">
-              Explore Collections
-            </Link>
-            <a href="#collections" className="btn btn-outline">
-              Shop by Category
-            </a>
-          </div>
-        </div>
-        <div className="hero-split-image" style={{ position: 'relative' }}>
-          <Image 
-            src="/images/crockery_dinner_set.png" 
-            alt="Premium Dinnerware Collection"
-            fill
-            priority
-            sizes="50vw"
-            style={{ objectFit: 'cover' }}
-          />
-        </div>
-      </section>
+      <HeroCarousel />
 
       {/* Trust Anchors */}
       <section className="section" style={{ padding: "3rem 6%", borderBottom: "1px solid var(--border)" }}>

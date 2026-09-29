@@ -12,6 +12,7 @@ import InstructionsTab from "./InstructionsTab";
 import PromoPopupTab from "./PromoPopupTab";
 import UsersTab from "./UsersTab";
 import HomepageCollectionsTab from "./HomepageCollectionsTab";
+import HeroBannersTab from "./HeroBannersTab";
 import { generateInvoicePDF } from "../utils/invoiceGenerator";
 import { useAuth } from "../context/AuthContext";
 import Link from "next/link";
@@ -2365,6 +2366,12 @@ export default function AdminPage() {
             <i className="fa-solid fa-images"></i> <span>Homepage Setup</span>
           </button>
           <button 
+            className={`tab-btn ${activeTab === "hero-banners" ? "active" : ""}`}
+            onClick={() => setActiveTab("hero-banners")}
+          >
+            <i className="fa-solid fa-image"></i> <span>Hero Banners</span>
+          </button>
+          <button 
             className={`tab-btn ${activeTab === "instructions" ? "active" : ""}`}
             onClick={() => setActiveTab("instructions")}
           >
@@ -4580,6 +4587,9 @@ export default function AdminPage() {
 
       {/* Tab 5: Instructions */}
       {activeTab === "instructions" && <InstructionsTab />}
+
+      {/* Tab 6: Hero Banners */}
+      {activeTab === "hero-banners" && <HeroBannersTab />}
 
       {/* Floating Luxury Toast Notification Banner */}
       <div 

@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
+import AnnouncementBar from './AnnouncementBar';
 
 export default function Navbar() {
   const { cartItemCount, wishlist } = useApp();
@@ -76,12 +77,7 @@ export default function Navbar() {
   return (
     <header className="site-header">
       {/* Top Announcement Bar */}
-      <div className="top-announcement-bar">
-        <span>
-          <i className="fa-solid fa-crown" style={{ color: '#d4af37' }}></i>
-          FINE DINING &amp; LUXURY HOSPITALITY SOLUTIONS
-        </span>
-      </div>
+      <AnnouncementBar />
 
       {/* Mobile Nav Overlay Backdrop */}
       <div 
