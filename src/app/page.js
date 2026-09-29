@@ -7,8 +7,7 @@ import Image from "next/image";
 import { useApp } from "./context/AppContext";
 import { getImageStyle } from "./utils/imageUtils";
 import { supabase } from "../supabase";
-import ProductImageZoomViewer from "./components/ProductImageZoomViewer";
-import ProductVideoEmbed from "./components/ProductVideoEmbed";
+
 import HeroCarousel from "./components/HeroCarousel";
 
 const getValidImageUrl = (src) => {
