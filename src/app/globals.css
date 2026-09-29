@@ -844,6 +844,8 @@ nav {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-top: auto;
   padding-top: 1rem;
   border-top: 1px solid var(--border);
@@ -2161,10 +2163,25 @@ footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.5rem;
-    padding: 1.2rem 1.5rem;
+    margin-bottom: 1rem;
+    padding: 1.2rem 1.5rem 0.5rem;
     background-color: transparent !important;
-    border-bottom: 1px solid var(--border);
+  }
+  .nav-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1004;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  .nav-backdrop.active {
+    opacity: 1;
+    pointer-events: auto;
   }
   .nav-links {
     position: fixed;
@@ -2191,32 +2208,45 @@ footer {
   
   .nav-links > li:not(.menu-header-container) {
     width: 100%;
-    padding: 0 1.5rem;
+    padding: 0 1rem;
+    margin-bottom: 0.5rem;
   }
 
   .nav-links a,
   .nav-links .nav-link-btn {
+    background: #ffffff !important;
     color: #1A1917 !important;
     font-family: var(--font-sans);
-    font-size: 0.95rem;
-    font-weight: 600;
-    letter-spacing: 1.5px;
+    font-size: 1rem;
+    font-weight: 500;
     width: 100%;
-    padding: 1.1rem 0;
-    border-bottom: 1px solid var(--border);
+    padding: 1rem 1.2rem;
+    border-radius: 8px;
+    border: 1px solid #eaeaea;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
     transition: all 0.25s ease;
-    text-transform: uppercase;
-    display: block;
+    text-transform: capitalize;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     cursor: pointer !important;
     pointer-events: auto !important;
+  }
+
+  .nav-links > li:not(.nav-dropdown-wrapper) > a::after,
+  .nav-links > li > a.nav-item-link::after {
+    content: '>';
+    font-family: monospace;
+    font-size: 1.2rem;
+    color: #999;
+    font-weight: bold;
   }
   
   .nav-links a:hover,
   .nav-links .nav-link-btn:hover {
+    border-color: var(--primary);
     color: var(--primary) !important;
-    padding-left: 8px;
-    background: none;
-    border-bottom-color: var(--primary);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.05);
   }
 
   .nav-links .menu-header-container .logo-title {
@@ -4313,6 +4343,10 @@ footer {
 @media (max-width: 768px) {
   body {
     padding-bottom: 70px; /* Make space for fixed nav */
+  }
+
+  body:has(.nav-links.active) .mobile-bottom-nav {
+    display: none !important;
   }
 
   .mobile-bottom-nav {

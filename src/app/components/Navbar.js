@@ -32,6 +32,18 @@ export default function Navbar() {
     setMobileActive(false);
   }, [pathname]);
 
+  // Lock body scroll when mobile menu is active
+  useEffect(() => {
+    if (mobileActive) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileActive]);
+
   // Close mobile menu on window resize above 1024px or ESC key press
   useEffect(() => {
     const handleResize = () => {
@@ -112,8 +124,8 @@ export default function Navbar() {
 
         {/* Navigation Links */}
         <ul className={`nav-links ${mobileActive ? 'active' : ''}`} id="nav-links-menu">
-          <li className="nav-mobile-only menu-header-container">
-            <div className="logo-container">
+          <li className="nav-mobile-only menu-header-container" style={{ position: 'relative', justifyContent: 'center' }}>
+            <div className="logo-container" style={{ margin: '0 auto' }}>
               <div className="logo-badge-wrapper" style={{ width: '40px', height: '40px' }}>
                 <Image src="/images/logo.jpg" alt="Orient Crockeries" width={40} height={40} style={{ objectFit: 'contain' }} />
               </div>
@@ -122,6 +134,7 @@ export default function Navbar() {
               className="menu-close-x-btn" 
               onClick={closeDrawer}
               aria-label="Close menu"
+              style={{ position: 'absolute', right: '15px' }}
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -132,6 +145,11 @@ export default function Navbar() {
           
           <li>
             <Link href="/" className={`nav-item-link ${pathname === '/' ? 'active' : ''}`} onClick={closeDrawer}>Home</Link>
+          </li>
+          <li>
+            <Link href="/#hot-deals" className="nav-item-link" onClick={closeDrawer} style={{ color: '#e11d48', fontWeight: 'bold' }}>
+              🔥 Hot Deals
+            </Link>
           </li>
           <li className="nav-dropdown-wrapper">
             <div className={`nav-item-link ${pathname?.startsWith('/catalog') ? 'active' : ''}`} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -180,6 +198,17 @@ export default function Navbar() {
 
           {/* Nav Icons */}
           <div className="nav-icons">
+            {/* WhatsApp Link */}
+            <a 
+              href="https://wa.me/+918675868999?text=Hello!%20I%20need%20some%20help%20with%20Orient%20Crockeries." 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="nav-icon-btn" 
+              title="Chat with us on WhatsApp"
+            >
+              <i className="fa-brands fa-whatsapp" style={{ fontSize: '20px', color: '#25D366' }}></i>
+            </a>
+
             {/* Wishlist Link */}
             <Link href="/catalog?wishlist=true" className="nav-icon-btn" title="Wishlist">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

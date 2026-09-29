@@ -3853,6 +3853,51 @@ export default function AdminPage() {
                   </div>
                 </div>
 
+                {/* Hot Deal Toggle */}
+                <div className="form-group full-width" style={{
+                  background: editingProduct.is_hot_deal ? "linear-gradient(135deg, #fef2f2 0%, #fff1f2 100%)" : "#f8fafc",
+                  padding: "1rem",
+                  borderRadius: "12px",
+                  border: editingProduct.is_hot_deal ? "1.5px solid #ef4444" : "1.5px solid #cbd5e1",
+                  transition: "all 0.2s ease",
+                  marginBottom: "12px"
+                }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+                    <h4 style={{ margin: 0, fontSize: "0.95rem", color: "#1e293b", display: "flex", alignItems: "center", gap: "8px" }}>
+                      <i className="fa-solid fa-fire" style={{ color: editingProduct.is_hot_deal ? "#ef4444" : "#94a3b8" }}></i> 
+                      <span>Hot Deal (Today's Sale)</span>
+                    </h4>
+
+                    <label style={{ 
+                      display: "inline-flex", 
+                      alignItems: "center", 
+                      gap: "8px", 
+                      cursor: "pointer", 
+                      fontSize: "0.78rem", 
+                      fontWeight: "800", 
+                      backgroundColor: editingProduct.is_hot_deal ? "#fee2e2" : "#f1f5f9",
+                      color: editingProduct.is_hot_deal ? "#b91c1c" : "#64748b",
+                      padding: "4px 12px",
+                      borderRadius: "20px",
+                      border: editingProduct.is_hot_deal ? "1px solid #fca5a5" : "1px solid #cbd5e1",
+                      userSelect: "none"
+                    }}>
+                      <input 
+                        type="checkbox" 
+                        checked={Boolean(editingProduct.is_hot_deal)}
+                        onChange={(e) => setEditingProduct({ ...editingProduct, is_hot_deal: e.target.checked })}
+                        style={{ accentColor: "#ef4444", width: "16px", height: "16px", cursor: "pointer" }}
+                      />
+                      <span>{editingProduct.is_hot_deal ? "🔥 ACTIVE IN SALE" : "NOT IN SALE"}</span>
+                    </label>
+                  </div>
+                  <p style={{ margin: "6px 0 0 0", fontSize: "0.78rem", color: "#64748b" }}>
+                    {editingProduct.is_hot_deal 
+                      ? "This product will be prominently featured on the Homepage under Today's Hot Deals." 
+                      : "Turn this ON to feature this product in the Hot Deals section on the homepage."}
+                  </p>
+                </div>
+
                 {/* Product Video / Reel Showcase with ON/OFF Toggle Switch */}
                 <div className="form-group full-width" style={{ 
                   background: editingProduct.video_enabled ? "linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%)" : "#f8fafc", 

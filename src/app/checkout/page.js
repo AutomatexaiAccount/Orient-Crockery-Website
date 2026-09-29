@@ -289,7 +289,8 @@ export default function CheckoutPage() {
       
       if (!order.success) {
         console.warn("Backend order creation failed.", order.message);
-        handleCOD(); // Auto fallback to COD for demo
+        alert("Payment initialization failed. Please try again.");
+        setCheckoutPhase("payment_selection");
         return;
       }
       
@@ -851,16 +852,7 @@ export default function CheckoutPage() {
           
           <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
             <button onClick={initializeRazorpay} className="btn" style={{ background: "var(--primary)", color: "white", width: "100%", padding: "1.3rem", fontSize: "1.1rem", display: "flex", justifyContent: "center", alignItems: "center", gap: "12px", borderRadius: "8px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "1px", boxShadow: "0 8px 20px rgba(184, 134, 11, 0.3)", border: "none", cursor: "pointer", transition: "transform 0.2s ease" }}>
-              <i className="fa-solid fa-credit-card" style={{ fontSize: "1.2rem" }}></i> PAY ONLINE (RAZORPAY)
-            </button>
-  
-            <div style={{ position: "relative", margin: "1rem 0" }}>
-              <div style={{ borderTop: "1px solid #e0e0e0" }}></div>
-              <span style={{ position: "absolute", top: "-12px", left: "50%", transform: "translateX(-50%)", background: "#ffffff", padding: "0 15px", color: "#888", fontSize: "0.9rem", fontWeight: "600" }}>OR</span>
-            </div>
-  
-            <button onClick={handleCOD} className="btn btn-outline" style={{ background: "#f8f9fa", color: "var(--dark)", width: "100%", padding: "1.3rem", fontSize: "1.1rem", border: "2px solid #e0e0e0", display: "flex", justifyContent: "center", alignItems: "center", gap: "12px", borderRadius: "8px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "1px", cursor: "pointer", transition: "all 0.2s ease" }}>
-              <i className="fa-solid fa-money-bill-wave" style={{ fontSize: "1.2rem", color: "#28a745" }}></i> CASH ON DELIVERY (COD)
+              <i className="fa-solid fa-credit-card" style={{ fontSize: "1.2rem" }}></i> PAY SECURELY (RAZORPAY)
             </button>
           </div>
           

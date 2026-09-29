@@ -632,11 +632,12 @@ function CatalogContent() {
                     key={product.id} 
                     className="product-card" 
                     onClick={() => router.push(`/product/${product.id}`)}
-                    style={{ cursor: "pointer" }}
+                    style={{ cursor: "pointer", border: product.is_hot_deal ? "1px solid #fca5a5" : undefined }}
                   >
                     <div className="product-img-wrapper">
                       {(product.stock <= 0 || product.stockStatus === 'Out of Stock') && <span className="product-badge out-stock">Out of Stock</span>}
-                      {product.rating >= 4.9 && product.stock > 30 && product.stockStatus !== 'Out of Stock' && <span className="product-badge">Premium Selection</span>}
+                      {product.stock > 0 && product.stockStatus !== 'Out of Stock' && product.is_hot_deal && <span className="product-badge" style={{ backgroundColor: "#ef4444" }}>🔥 Hot Deal</span>}
+                      {product.rating >= 4.9 && product.stock > 30 && product.stockStatus !== 'Out of Stock' && !product.is_hot_deal && <span className="product-badge">Premium Selection</span>}
                       <Image 
                         src={getValidImageUrl(product.image)} 
                         alt={product.name} 

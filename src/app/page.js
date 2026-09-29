@@ -126,6 +126,95 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Hot Deals Showcase */}
+      {products.some(p => p.is_hot_deal) && (
+        <section id="hot-deals" className="section" style={{ 
+          background: "linear-gradient(135deg, #fff1f2 0%, #ffe4e6 50%, #fecdd3 100%)", 
+          borderTop: "2px solid #f43f5e",
+          borderBottom: "2px solid #f43f5e",
+          paddingTop: "4rem",
+          paddingBottom: "4rem",
+          boxShadow: "inset 0 0 40px rgba(244, 63, 94, 0.1)"
+        }}>
+          <div className="section-header">
+            <p className="section-subtitle" style={{ color: "#e11d48", fontWeight: "700", letterSpacing: "3px" }}>💥 EXCLUSIVE FLASH SALE</p>
+            <h2 className="section-title" style={{ fontSize: "2.5rem", color: "#881337", textShadow: "0px 2px 4px rgba(225, 29, 72, 0.1)" }}>🔥 Today's Hot Deals</h2>
+          </div>
+          <div className="product-grid">
+            {products.filter(p => p.is_hot_deal).slice(0, 8).map((product) => {
+              const inWish = isInWishlist(product.id);
+              return (
+                <div 
+                  key={product.id} 
+                  className="product-card" 
+                  onClick={() => router.push(`/product/${product.id}`)}
+                  style={{ 
+                    cursor: "pointer", 
+                    border: "2px solid #fb7185",
+                    boxShadow: "0 15px 30px -5px rgba(225, 29, 72, 0.2)",
+                    backgroundColor: "#fff"
+                  }}
+                >
+                  <div className="product-img-wrapper">
+                    {(product.stock <= 0 || product.stockStatus === 'Out of Stock') && <span className="product-badge out-stock">Out of Stock</span>}
+                    {product.stock > 0 && product.stockStatus !== 'Out of Stock' && <span className="product-badge" style={{ backgroundColor: "#ef4444" }}>🔥 Hot Deal</span>}
+                    <Image 
+                      src={getValidImageUrl(product.image)} 
+                      alt={product.name} 
+                      fill 
+                      sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                      className="product-image" 
+                      style={getImageStyle(product, product.image, 'cover')}
+                    />
+                    <button 
+                      className={`wishlist-btn ${inWish ? "active" : ""}`}
+                      onClick={(e) => handleToggleWishlist(product, e)}
+                      aria-label="Toggle Wishlist"
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill={inWish ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                      </svg>
+                    </button>
+                    <button 
+                      className="share-btn"
+                      onClick={(e) => handleShare(product, e)}
+                      aria-label="Share Product"
+                    >
+                      <i className="fa-solid fa-share-nodes"></i>
+                    </button>
+                  </div>
+                  <div className="product-info">
+                    <span className="product-category">{product.category}</span>
+                    <h3 className="product-title">{product.name}</h3>
+                    <div className="product-price-row">
+                      <div className="product-price" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                        ₹{product.price.toFixed(2)}
+                        {product.mrp && product.mrp > product.price && (
+                          <>
+                            <span style={{ fontSize: "0.85rem", color: "#94a3b8", textDecoration: "line-through", fontWeight: "500" }}>₹{product.mrp.toFixed(2)}</span>
+                            <span style={{ backgroundColor: "#ef4444", color: "#fff", padding: "2px 6px", borderRadius: "4px", fontSize: "0.7rem", fontWeight: "bold" }}>
+                              {Math.round(((product.mrp - product.price) / product.mrp) * 100)}% OFF
+                            </span>
+                          </>
+                        )}
+                      </div>
+                      <button 
+                        className="product-action-btn"
+                        style={{ backgroundColor: "#e11d48", color: "#fff", padding: "8px 16px", borderRadius: "6px", border: "none" }}
+                        onClick={(e) => handleAddToCart(product, e)}
+                        disabled={product.stock <= 0 || product.stockStatus === 'Out of Stock'}
+                      >
+                        {(product.stock <= 0 || product.stockStatus === 'Out of Stock') ? "Unavailable" : "Add to Cart"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       {/* Categories Showcase (Shop by Collection) */}
       <section className="section" id="collections">
         <div className="section-header">
@@ -149,98 +238,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Shop the Look */}
-      <section className="section" style={{ backgroundColor: "var(--bg-main)" }}>
-        <div className="section-header">
-          <p className="section-subtitle">Get Inspired</p>
-          <h2 className="section-title">Shop The Look</h2>
-        </div>
-        <div className="shop-the-look-container">
-          <Image src="/images/shop_the_look.png" alt="Luxury Dining Setup" width={1200} height={480} className="shop-the-look-image" priority />
-          
-          {/* Hotspot 1: Bone China Set (Center Plate) */}
-          <div 
-            className="hotspot" 
-            style={{ top: '48%', left: '50%' }}
-            onMouseEnter={() => setHoveredHotspot(7)}
-            onMouseLeave={() => setHoveredHotspot(null)}
-            onClick={() => {
-              const prod = products.find(p => p.id === 7);
-              if (prod) router.push(`/product/${prod.id}`);
-            }}
-          >
-            <div className="hotspot-inner"></div>
-            <div className={`hotspot-tooltip ${hoveredHotspot === 7 ? 'active' : ''}`}>
-              <h4 className="hotspot-title">Premium Bone China Set</h4>
-              <span className="hotspot-price">₹299.00</span>
-              <button 
-                className="btn btn-primary btn-full btn-sm"
-                onClick={(e) => {
-                  const prod = products.find(p => p.id === 7);
-                  if (prod) handleAddToCart(prod, e);
-                }}
-              >
-                Add to Cart
-              </button>
-            </div>
-          </div>
 
-          {/* Hotspot 2: Crystal Wine Glass (Left Glass) */}
-          <div 
-            className="hotspot" 
-            style={{ top: '33%', left: '30%' }}
-            onMouseEnter={() => setHoveredHotspot(9)}
-            onMouseLeave={() => setHoveredHotspot(null)}
-            onClick={() => {
-              const prod = products.find(p => p.id === 9);
-              if (prod) router.push(`/product/${prod.id}`);
-            }}
-          >
-            <div className="hotspot-inner"></div>
-            <div className={`hotspot-tooltip ${hoveredHotspot === 9 ? 'active' : ''}`}>
-              <h4 className="hotspot-title">Crystal Wine Glass Set</h4>
-              <span className="hotspot-price">₹120.00</span>
-              <button 
-                className="btn btn-primary btn-full btn-sm"
-                onClick={(e) => {
-                  const prod = products.find(p => p.id === 9);
-                  if (prod) handleAddToCart(prod, e);
-                }}
-              >
-                Add to Cart
-              </button>
-            </div>
-          </div>
-
-          {/* Hotspot 3: Matte Ceramic Plates (Right side) */}
-          <div 
-            className="hotspot" 
-            style={{ top: '40%', left: '69.5%' }}
-            onMouseEnter={() => setHoveredHotspot(10)}
-            onMouseLeave={() => setHoveredHotspot(null)}
-            onClick={() => {
-              const prod = products.find(p => p.id === 10);
-              if (prod) router.push(`/product/${prod.id}`);
-            }}
-          >
-            <div className="hotspot-inner"></div>
-            <div className={`hotspot-tooltip ${hoveredHotspot === 10 ? 'active' : ''}`}>
-              <h4 className="hotspot-title">Matte Ceramic Plates</h4>
-              <span className="hotspot-price">₹85.00</span>
-              <button 
-                className="btn btn-primary btn-full btn-sm"
-                onClick={(e) => {
-                  const prod = products.find(p => p.id === 10);
-                  if (prod) handleAddToCart(prod, e);
-                }}
-              >
-                Add to Cart
-              </button>
-            </div>
-          </div>
-
-        </div>
-      </section>
 
       {/* Brand Heritage / Story */}
       <section className="section section-alt brand-heritage-layout">

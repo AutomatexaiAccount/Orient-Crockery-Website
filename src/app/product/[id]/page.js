@@ -243,6 +243,11 @@ export default function ProductDetailPage() {
                     🔥 Only {selectedProduct.stock} left
                   </span>
                 )}
+                {selectedProduct.is_hot_deal && (
+                  <span style={{ backgroundColor: "#ef4444", color: "#fff", padding: "3px 8px", borderRadius: "4px", fontSize: "0.8rem", fontWeight: "bold" }}>
+                    🔥 Hot Deal
+                  </span>
+                )}
               </div>
               {/* Size / Option Variants */}
               {variations.length > 0 ? (
