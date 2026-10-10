@@ -37,13 +37,13 @@ export async function sendWhatsAppMessage(phoneNumber, templateName, templatePar
     });
 
     if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Failed to send WhatsApp message:", errorData);
+        const errorData = await response.json().catch(() => null);
+        console.error(`[WhatsApp API] Failed to send template '${templateName}' to ${phoneNumber}:`, errorData || response.statusText);
         return false;
     }
 
-    const data = await response.json();
-    console.log("WhatsApp message sent successfully:", data);
+    const data = await response.json().catch(() => null);
+    console.log(`[WhatsApp API] Successfully triggered template '${templateName}' to ${phoneNumber}`);
     return data;
 
   } catch (error) {

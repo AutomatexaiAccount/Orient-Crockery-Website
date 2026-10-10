@@ -92,9 +92,22 @@ export async function POST(request) {
       
       let templateName = '';
       if (nextStatus === 'Packed') {
-        templateName = deliveryMethod === 'pickup' ? 'pack_self_pickup_2' : 'pack_delivery_2';
+        // Pack Order Scenarios
+        if (deliveryMethod === 'pickup') {
+          templateName = 'order_packed_pickup'; // Msg: "Order is packed and ready for pickup"
+        } else {
+          templateName = 'order_packed_delivery'; // Msg: "Order is packed and ready for shipping"
+        }
       } else if (nextStatus === 'Shipped') {
-        templateName = deliveryMethod === 'pickup' ? 'dispatch_self_pickup_2' : 'dispatch_delivery_2';
+        // Dispatch Scenarios
+        if (deliveryMethod === 'pickup') {
+          templateName = 'order_dispatched_pickup'; // Msg: "You have successfully picked up your order"
+        } else {
+          templateName = 'order_dispatched_delivery'; // Msg: "Your order is out for delivery"
+        }
+      } else if (nextStatus === 'Delivered') {
+        // Delivered Scenario (Request Google My Business Review)
+        templateName = 'order_delivered_review'; 
       }
 
       if (templateName) {
